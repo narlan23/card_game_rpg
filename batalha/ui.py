@@ -1,0 +1,111 @@
+import pygame
+from config import WHITE, FONT
+
+def draw_player_status(surface, player, x, y):
+    """
+    Desenha o status completo do jogador:
+    - Nome
+    - Barra de vida com texto centralizado
+    - Barra de energia com texto centralizado
+    - Efeitos ativos (se houver)
+    """
+    # Nome
+    name_text = FONT.render(player.name, True, WHITE)
+    surface.blit(name_text, (x, y))
+
+    # ------------------- VIDA -------------------
+    bar_width = 150
+    bar_height = 15
+    life_ratio = max(0, player.health / player.max_health)
+
+    # Fundo vermelho
+    pygame.draw.rect(surface, (100, 0, 0), (x, y + 30, bar_width, bar_height), border_radius=4)
+    # Vida verde
+    pygame.draw.rect(surface, (0, 200, 0), (x, y + 30, int(bar_width * life_ratio), bar_height), border_radius=4)
+    # Contorno
+    pygame.draw.rect(surface, WHITE, (x, y + 30, bar_width, bar_height), 2, border_radius=4)
+
+    # Texto centralizado da vida
+    life_text = FONT.render(f"{player.health}/{player.max_health}", True, WHITE)
+    shadow = FONT.render(f"{player.health}/{player.max_health}", True, (0, 0, 0))
+    shadow_rect = shadow.get_rect(center=(x + bar_width // 2 + 1, y + 30 + bar_height // 2 + 1))
+    surface.blit(shadow, shadow_rect)
+    life_rect = life_text.get_rect(center=(x + bar_width // 2, y + 30 + bar_height // 2))
+    surface.blit(life_text, life_rect)
+
+    # ------------------- ENERGIA -------------------
+    energy_ratio = max(0, player.energy / player.max_energy)
+
+    # Fundo cinza
+    pygame.draw.rect(surface, (60, 60, 60), (x, y + 55, bar_width, bar_height), border_radius=4)
+    # Energia azul
+    pygame.draw.rect(surface, (0, 200, 255), (x, y + 55, int(bar_width * energy_ratio), bar_height), border_radius=4)
+    # Contorno
+    pygame.draw.rect(surface, WHITE, (x, y + 55, bar_width, bar_height), 2, border_radius=4)
+
+    # Texto centralizado da energia
+    energy_text = FONT.render(f"{player.energy}/{player.max_energy}", True, WHITE)
+    shadow = FONT.render(f"{player.energy}/{player.max_energy}", True, (0, 0, 0))
+    shadow_rect = shadow.get_rect(center=(x + bar_width // 2 + 1, y + 55 + bar_height // 2 + 1))
+    surface.blit(shadow, shadow_rect)
+    energy_rect = energy_text.get_rect(center=(x + bar_width // 2, y + 55 + bar_height // 2))
+    surface.blit(energy_text, energy_rect)
+
+    # ------------------- EFEITOS -------------------
+    if hasattr(player, "effects") and player.effects:
+        effects_text = FONT.render("Efeitos: " + " ".join(player.effects), True, WHITE)
+        surface.blit(effects_text, (x, y + 80))
+
+# Configuração do botão End Turn
+END_TURN_BUTTON = pygame.Rect(700, 500, 140, 40)  # posição e tamanho
+
+END_TURN_LAYOUT = {
+    "color": (200, 50, 50),
+    "hover_color": (220, 70, 70),
+    "hover_scale": 1.1,
+    "shadow_offset": (4, 4),
+}
+
+
+def draw_end_turn_button(surface, font, battle_manager):
+    """Desenha o botão End Turn, parecido com o botão Confirm"""
+    cfg = END_TURN_LAYOUT
+    mouse_pos = pygame.mouse.get_pos()
+    is_hover = END_TURN_BUTTON.collidepoint(mouse_pos)
+
+    # Escala no hover
+    scale = cfg["hover_scale"] if is_hover else 1.0
+    button_rect = pygame.Rect(
+        END_TURN_BUTTON.x,
+        END_TURN_BUTTON.y,
+        int(END_TURN_BUTTON.width * scale),
+        int(END_TURN_BUTTON.height * scale),
+    )
+    button_rect.center = END_TURN_BUTTON.center
+
+    # ---------------- SOMBRA ----------------
+    shadow = button_rect.copy()
+    shadow.x += cfg["shadow_offset"][0]
+    shadow.y += cfg["shadow_offset"][1]
+    pygame.draw.rect(surface, (0, 0, 0, 150), shadow, border_radius=10)
+
+    # ---------------- FUNDO ----------------
+    base_color = cfg["hover_color"] if is_hover else cfg["color"]
+    pygame.draw.rect(surface, base_color, button_rect, border_radius=10)
+
+    # ---------------- TEXTO ----------------
+    label = font.render("Encerrar", True, (255, 255, 255))
+    surface.blit(
+        label,
+        (button_rect.centerx - label.get_width() // 2,
+         button_rect.centery - label.get_height() // 2),
+    )
+
+
+def handle_end_turn_click(pos, battle_manager):
+    """Verifica clique no botão End Turn"""
+    if battle_manager.state == battle_manager.state.PLAYER_TURN:
+        if END_TURN_BUTTON.collidepoint(pos):
+            battle_manager.end_player_turn()
+            return True
+    return False
