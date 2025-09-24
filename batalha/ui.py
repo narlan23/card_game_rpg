@@ -57,7 +57,7 @@ def draw_player_status(surface, player, x, y):
         surface.blit(effects_text, (x, y + 80))
 
 # Configuração do botão End Turn
-END_TURN_BUTTON = pygame.Rect(700, 500, 140, 40)  # posição e tamanho
+END_TURN_BUTTON = pygame.Rect(650, 500, 140, 40)  # posição e tamanho
 
 END_TURN_LAYOUT = {
     "color": (200, 50, 50),

@@ -16,6 +16,8 @@ class Game:
         self.CLOCK = pygame.time.Clock()
         self.assets = Assets()
         self.running = True  # <-- controle de loop principal
+        self.screen_width = 800  # ou o valor que você quiser
+        self.screen_height = 600  # ou o valor que você quiser
 
         # Carregar recursos principais
         self.assets.load_font("default", font_path, 18)
