@@ -1,196 +1,225 @@
 import pygame
 import sys
+
+# Importações de componentes do jogo
 from jogo_principal.camera import Camera
 from jogo_principal.tileset import TiledMap
 from jogo_principal.dialog import Dialogo
-from characters.npc import NPC  # import da classe NPC
+from characters.npc import NPC
+from states.batalha import Batalha
 
-class JogoPrincipal:
+# 1. Defina os dados dos inimigos para este encontro
+dados_inimigos_da_torre = [
+    {"name": "Goblin", "health": 30, "attack": 5, "image": "goblin.png"},
+    {"name": "Orc", "health": 50, "attack": 8, "image": "orc.png"},
+]
+
+# É uma boa prática ter uma classe base para todos os estados
+class BaseState:
+    """Classe base para todos os estados do jogo."""
     def __init__(self, game):
         self.game = game
-        self.font = game.assets.get_font("default")
-        self.player_pos = [400, 300]
 
-        # Configurações do jogador
+    def handle_events(self, events):
+        pass
+    def update(self):
+        pass
+    def draw(self, surface):
+        pass
+
+class JogoPrincipal(BaseState):
+    """
+    Estado principal do jogo, onde o jogador explora o mapa,
+    interage com NPCs e entra em batalhas.
+    """
+    def __init__(self, game):
+        super().__init__(game)
+        
+        # --- CONFIGURAÇÕES DO JOGADOR E DO MUNDO ---
+        self.player = self.game.player
+        self.player_pos = [400, 300] # Posição inicial no mundo
         self.TAMANHO_JOGADOR = 20
-        self.VELOCIDADE_JOGADOR = 3
+        self.VELOCIDADE_JOGADOR = 180 # Movimento baseado em pixels por segundo
 
-        # Carregar mapa JSON do Tiled
+        # --- FONTES E INTERFACE ---
+        self.font_default = self.game.assets.get_font("default")
+        self.font_hud = self.game.assets.get_font("small")
+        self.dialogo = Dialogo(self.font_default)
+
+        # --- MAPA E CÂMERA ---
         self.mapa = TiledMap("assets/mapa.tmj")
-
-        # Configuração da câmera
         map_width = self.mapa.width * self.mapa.tilewidth
         map_height = self.mapa.height * self.mapa.tileheight
-        self.camera = Camera(500, 400, map_width, map_height)
+        self.camera = Camera(self.game.screen_width, self.game.screen_height, map_width, map_height)
 
-        # Sistema de diálogo
-        self.dialogo = Dialogo(self.font)
+        # --- NPCs ---
+        self.npcs = self._create_npcs()
+        self.npc_interacao = None # Armazena o NPC com o qual a interação é possível
 
-        # NPCs do jogo
-        self.npcs = [
+        # --- CONTROLE DE TEMPO ---
+        self.clock = pygame.time.Clock()
+        self.delta_time = 0
+
+        # --- ESTADO INTERNO ---
+        self.is_paused = False
+
+    def _create_npcs(self):
+        """Cria e retorna uma lista com todas as instâncias de NPCs do jogo."""
+        return [
             NPC(
                 "Velho Sábio",
                 pygame.Rect(672, 294, 50, 50),
                 {
                     "texto": "Bem-vindo, aventureiro! Cuidado com os perigos da torre...",
-                    "opcoes": ["Atacar", "Defender", "Usar Item", "Fugir"],
-                    "callbacks": [
-                        lambda: print("Atacou!"),
-                        lambda: print("Defendeu!"),
-                        lambda: print("Usou item!"),
-                        lambda: print("Fugiu!")
-                    ],
+                    "opcoes": ["Obrigado!", "Vou ter cuidado."],
+                    "callbacks": [lambda: print("Disse 'Obrigado!'"), lambda: print("Prometeu ter cuidado.")],
                     "layout": "vertical"
-                }
-            ),
-            NPC(
-                "Comerciante",
-                pygame.Rect(672, 400, 50, 50),
-                {
-                    "texto": "Tenho poções e equipamentos para vender!",
-                    "layout": "info"
                 }
             ),
             NPC(
                 "Torre",
                 pygame.Rect(672, 500, 50, 50),
                 {
-                    "texto": "Deseja enfrentar a torre?",
-                    "opcoes": ["Sim", "Não", "Talvez"],
+                    "texto": "Deseja enfrentar os perigos da torre?",
+                    "opcoes": ["Sim", "Não"],
                     "callbacks": [
-                        lambda: self.game.change_state("BATALHA"),
-                        lambda: print("Não enfrentou."),
-                        lambda: print("Talvez depois.")
+                        lambda: self.game.push_state(Batalha(self.game, dados_inimigos_da_torre)),
+                        lambda: print("O jogador recuou da torre.")
                     ],
                     "layout": "horizontal"
                 }
             )
         ]
 
-        # Estado de interação
-        self.pode_interagir = False
-        self.npc_interacao = None
-
-        # Clock para delta time
-        self.clock = pygame.time.Clock()
-        self.delta_time = 0
-
     # ========================
-    # Eventos
+    # Loop Principal do Estado
     # ========================
+
     def handle_events(self, events):
+        """Gerencia toda a entrada do usuário para este estado."""
         for event in events:
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                self._handle_global_event(event)
+                self.game.running = False
+            
+            # Se o diálogo estiver ativo, ele tem prioridade
             if self.dialogo.ativo:
                 self.dialogo.handle_event(event)
-
-    def _handle_global_event(self, event):
-        if event.key == pygame.K_ESCAPE:
-            if self.dialogo.ativo:
-                self.dialogo.fechar()
             else:
-                self.game.change_state("MENU_PRINCIPAL")
-        elif event.key == pygame.K_c:
-            self.game.change_state("CARACTERISTICAS")
-        elif event.key == pygame.K_b:
-            self.game.change_state("BATALHA")
-        elif event.key == pygame.K_e and self.pode_interagir and not self.dialogo.ativo:
-            self._interagir_com_npc()
+                # Caso contrário, processa os eventos do jogo
+                self._handle_player_input(event)
+
+    def update(self):
+        """Atualiza a lógica do jogo a cada frame."""
+        # Calcula o delta_time para movimento consistente
+        self.delta_time = self.clock.tick(60) / 1000.0
+
+        if not self.dialogo.ativo:
+            self._processar_movimento()
+            self._verificar_interacao()
+        
+        self._update_camera()
+
+    def draw(self, surface):
+        """Renderiza todos os elementos do jogo na tela."""
+        surface.fill((30, 30, 50)) # Cor de fundo
+
+        # Desenha o mapa e os objetos do jogo
+        self.mapa.draw(surface, self.camera)
+        self._draw_npcs(surface)
+        self._draw_player(surface)
+        
+        # Desenha a interface por cima do jogo
+        self._draw_hud(surface)
+        
+        # Se o diálogo estiver ativo, desenha-o por último
+        if self.dialogo.ativo:
+            self.dialogo.draw(surface)
 
     # ========================
-    # Atualização
+    # Métodos Auxiliares
     # ========================
-    def update(self):
-        self.delta_time = self.clock.tick(60) / 1000.0
-        self._processar_movimento()
-        self._verificar_colisoes()
-        self.camera.update(self.player_pos)
+
+    def _handle_player_input(self, event):
+        """Processa as teclas pressionadas pelo jogador."""
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                # Empilha um menu de pausa sobre o jogo
+                self.game.push_state("MENU_PAUSA") # Você precisará criar este estado
+            
+            elif event.key == pygame.K_c:
+                # Empilha a tela de características
+                self.game.push_state("CARACTERISTICAS")
+            
+            elif event.key == pygame.K_e and self.npc_interacao:
+                # Interage com o NPC próximo
+                self.npc_interacao.interagir(self.dialogo)
 
     def _processar_movimento(self):
+        """Calcula e aplica o movimento do jogador."""
         keys = pygame.key.get_pressed()
         dx = (keys[pygame.K_RIGHT] or keys[pygame.K_d]) - (keys[pygame.K_LEFT] or keys[pygame.K_a])
         dy = (keys[pygame.K_DOWN] or keys[pygame.K_s]) - (keys[pygame.K_UP] or keys[pygame.K_w])
 
+        # Normaliza o vetor de movimento para evitar velocidade extra na diagonal
         if dx != 0 and dy != 0:
             dx *= 0.7071
             dy *= 0.7071
 
-        self.player_pos[0] += dx * self.VELOCIDADE_JOGADOR * 60 * self.delta_time
-        self.player_pos[1] += dy * self.VELOCIDADE_JOGADOR * 60 * self.delta_time
+        self.player_pos[0] += dx * self.VELOCIDADE_JOGADOR * self.delta_time
+        self.player_pos[1] += dy * self.VELOCIDADE_JOGADOR * self.delta_time
+        
+        # Garante que o jogador não saia dos limites do mapa
         self._limitar_movimento_mapa()
 
     def _limitar_movimento_mapa(self):
-        half_size = self.TAMANHO_JOGADOR // 2
-        map_width = self.mapa.width * self.mapa.tilewidth
-        map_height = self.mapa.height * self.mapa.tileheight
+        """Impede que o jogador se mova para fora da área do mapa."""
+        half_size = self.TAMANHO_JOGADOR / 2
+        self.player_pos[0] = max(half_size, min(self.player_pos[0], self.camera.map_width - half_size))
+        self.player_pos[1] = max(half_size, min(self.player_pos[1], self.camera.map_height - half_size))
 
-        self.player_pos[0] = max(half_size, min(self.player_pos[0], map_width - half_size))
-        self.player_pos[1] = max(half_size, min(self.player_pos[1], map_height - half_size))
-
-    def _verificar_colisoes(self):
+    def _verificar_interacao(self):
+        """Verifica se o jogador está próximo o suficiente de um NPC para interagir."""
         player_rect = pygame.Rect(
-            self.player_pos[0] - self.TAMANHO_JOGADOR // 2,
-            self.player_pos[1] - self.TAMANHO_JOGADOR // 2,
+            self.player_pos[0] - self.TAMANHO_JOGADOR / 2,
+            self.player_pos[1] - self.TAMANHO_JOGADOR / 2,
             self.TAMANHO_JOGADOR,
             self.TAMANHO_JOGADOR
         )
 
-        self.pode_interagir = False
-        self.npc_interacao = None
-
+        self.npc_interacao = None # Reseta a cada frame
         for npc in self.npcs:
             if player_rect.colliderect(npc.rect):
-                self.pode_interagir = True
                 self.npc_interacao = npc
                 break
-
-    def _interagir_com_npc(self):
-        if self.npc_interacao:
-            print(f"Interagindo com {self.npc_interacao.nome}")
-            self.npc_interacao.interagir(self.dialogo)
+    
+    def _update_camera(self):
+        """Atualiza a posição da câmera para seguir o jogador."""
+        self.camera.update(self.player_pos)
 
     # ========================
-    # Renderização
+    # Métodos de Renderização
     # ========================
-    def draw(self, surface):
-        surface.fill((0, 0, 0))
-        temp_surface = pygame.Surface((self.camera.width, self.camera.height))
-        temp_surface.fill((30, 30, 50))
 
-        self.mapa.draw(temp_surface, self.camera)
-
-        # Desenha NPCs
-        for npc in self.npcs:
-            pygame.draw.rect(temp_surface, (0, 255, 0), self.camera.apply_rect(npc.rect), 2)
-
-        # Desenha jogador
+    def _draw_player(self, surface):
+        """Desenha o jogador na tela."""
         player_screen_pos = self.camera.apply(self.player_pos)
-        pygame.draw.circle(temp_surface, (255, 255, 255), player_screen_pos, self.TAMANHO_JOGADOR // 2)
+        pygame.draw.circle(surface, (255, 255, 255), player_screen_pos, self.TAMANHO_JOGADOR / 2)
 
+    def _draw_npcs(self, surface):
+        """Desenha todos os NPCs na tela."""
+        for npc in self.npcs:
+            # Aplica o deslocamento da câmera ao retângulo do NPC antes de desenhar
+            npc_screen_rect = self.camera.apply(npc.rect)
+            pygame.draw.rect(surface, (0, 255, 0), npc_screen_rect, 2)
+
+    def _draw_hud(self, surface):
+        """Desenha a interface do usuário, como dicas de interação e stats."""
         # Indicador de interação
-        if self.pode_interagir:
-            interacao_pos = (player_screen_pos[0], player_screen_pos[1] - self.TAMANHO_JOGADOR - 10)
-            pygame.draw.circle(temp_surface, (255, 255, 0), interacao_pos, 5)
+        if self.npc_interacao:
+            text = self.font_hud.render(f"Pressione [E] para falar com {self.npc_interacao.nome}", True, (255, 255, 0))
+            rect = text.get_rect(center=(self.game.screen_width / 2, self.game.screen_height - 30))
+            surface.blit(text, rect)
 
-        surface.blit(pygame.transform.scale(temp_surface, surface.get_size()), (0, 0))
-
-        if self.dialogo.ativo:
-            self.dialogo.draw(surface)
-
-        self._draw_debug_info(surface)
-
-    def _draw_debug_info(self, surface):
-        debug_text = [
-            f"Posição: {int(self.player_pos[0])}, {int(self.player_pos[1])}",
-            f"FPS: {int(self.clock.get_fps())}",
-            f"Interação: {self.pode_interagir}",
-            f"NPC: {self.npc_interacao.nome if self.npc_interacao else 'Nenhum'}"
-        ]
-
-        for i, text in enumerate(debug_text):
-            text_surface = self.font.render(text, True, (255, 255, 255))
-            surface.blit(text_surface, (10, 10 + i * 20))
+        # Posição do jogador (para debug)
+        pos_text = self.font_hud.render(f"X: {int(self.player_pos[0])} | Y: {int(self.player_pos[1])}", True, (255, 255, 255))
+        surface.blit(pos_text, (10, 10))

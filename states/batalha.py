@@ -1,39 +1,51 @@
 import pygame
 import sys
 from batalha.battle_manager import BattleManager
-from batalha.enemy import Enemy
+from batalha.battle_state import BattleState
+from states.base_state import BaseState # <-- 1. Importe a classe base
 
-class Batalha:
-    def __init__(self, game):
-        self.game = game
+class Batalha(BaseState):
+    """
+    Representa o estado de combate do jogo.
+    Este estado é inicializado com os dados dos inimigos que o jogador enfrentará.
+    """
+    def __init__(self, game, enemies_data):
+        """
+        Inicializa o estado de batalha.
+        
+        Args:
+            game (Game): A instância principal do jogo.
+            enemies_data (list): Uma lista de dicionários, cada um contendo
+                                 os dados de um inimigo para esta batalha.
+        """
+        super().__init__(game)
+        
+        # O BattleManager gerencia toda a lógica complexa da batalha
         self.battle_manager = BattleManager(game)
         
-        # Dados dos inimigos para esta batalha
-        self.enemies_data = [
-            {"name": "Goblin", "health": 30, "attack": 1, "image": "goblin.png"},
-            {"name": "Orc", "health": 50, "attack": 1, "image": "orc.png"},
-            {"name": "Slime", "health": 20, "attack": 1, "image": "slime.png"}
-        ]
-        
-        # Configura a batalha
-        self.battle_manager.setup_battle(self.enemies_data)
+        # Configura a batalha com os inimigos específicos que foram passados
+        self.battle_manager.setup_battle(enemies_data)
 
     def handle_events(self, events):
+        """Gerencia a entrada do usuário durante a batalha."""
         for event in events:
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.game.change_state("JOGO_PRINCIPAL")
+                self.game.running = False
+            
+            # Se a batalha terminou (vitória ou derrota), ESC fecha a tela
+            if self.battle_manager.state in [BattleState.VICTORY, BattleState.DEFEAT]:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.game.pop_state() # Retorna ao estado anterior (mapa)
+            
+            # Durante o turno do jogador, processa cliques do mouse
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Delega o tratamento de cliques para o battle_manager
                 self.battle_manager.handle_click(event.pos)
+        pass
 
     def update(self):
-        # Delega a atualização para o battle_manager
+        """Delega a atualização da lógica para o battle_manager."""
         self.battle_manager.update()
 
     def draw(self, surface):
-        # Delega o desenho para o battle_manager
+        """Delega a renderização da cena de batalha para o battle_manager."""
         self.battle_manager.draw(surface)

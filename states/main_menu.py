@@ -1,28 +1,6 @@
 import pygame
 import sys
-
-# Uma classe base para os estados do jogo, para garantir uma estrutura consistente.
-class BaseState:
-    """Classe base para todos os estados do jogo."""
-    def __init__(self, game):
-        self.game = game
-
-    def handle_events(self, events):
-        """Processa todos os eventos (teclado, mouse, etc.)."""
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.game.running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.game.running = False
-
-    def update(self):
-        """Atualiza a lógica do estado."""
-        pass
-
-    def draw(self, surface):
-        """Desenha os elementos do estado na tela."""
-        pass
+from states.base_state import BaseState # <-- 1. Importe a classe base
 
 class MainMenu(BaseState):
     """
@@ -63,6 +41,7 @@ class MainMenu(BaseState):
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     # Executa a ação da opção selecionada
                     self.select_option()
+        pass
 
     def select_option(self):
         """Executa a ação correspondente à opção de menu selecionada."""
