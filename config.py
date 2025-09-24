@@ -1,35 +1,23 @@
 # ============================================================
 # CONFIGURAÇÕES DO JOGO - config.py
+# Contém apenas constantes e dados estáticos.
+# Nenhuma lógica de inicialização ou carregamento de assets.
 # ============================================================
 
-import pygame
-
-# Inicializar pygame ANTES de usar qualquer módulo
-pygame.init()
-
-# Carregando a fonte personalizada
-font_path = "assets/Font.ttf"
-FONT_SIZE       = 8
-FONT_SMALL_SIZE = 12
-FONT       = pygame.font.Font(font_path, FONT_SIZE)
-FONT_SMALL = pygame.font.Font(font_path, FONT_SMALL_SIZE)
-
-# Cores por estado
-CARD_COLORS = {
-    "idle": (180, 180, 180),
-    "selected": (100, 200, 100),
-    "exhausted": (150, 50, 50)
-}
-
-TEXT_COLOR = (0, 0, 0)
-
-ELEMENTS = ['Fogo', 'Terra', 'Água', 'Ar']
-
+# --- GERAL DO JOGO ---
 PLAYER_HEALTH = 100   # Vida inicial do jogador
 
-# ---------------------------
-# Paleta de Cores
-# ---------------------------
+# --- TELA E FONTES ---
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FONT_PATH = "assets/Font.ttf"
+FONT_SIZES = {
+    "small": 12,
+    "default": 18,
+    "large": 24
+}
+
+# --- PALETA DE CORES ---
 BLACK       = (0,   0,   0)
 WHITE       = (255, 255, 255)
 GREEN       = (0, 255,   0)
@@ -38,7 +26,11 @@ BLUE        = (0,   0, 255)
 GRAY        = (150, 150, 150)
 LIGHT_BLUE  = (173, 216, 230)
 GOLD        = (255, 215,   0)
-CARD_HOVER_COLOR = (100, 100, 100)  # Cor para efeito hover (cinza claro)
+
+# --- CONFIGURAÇÕES DE CARTAS ---
+CARD_WIDTH  = 100
+CARD_HEIGHT = 150
+ELEMENTS = ['Fogo', 'Terra', 'Água', 'Ar']
 
 # Cores para representar elementos
 ELEMENT_COLORS = {
@@ -48,47 +40,33 @@ ELEMENT_COLORS = {
     'Ar':   (200, 200, 255)
 }
 
-# ---------------------------
-# Cartas
-# ---------------------------
-# Tipos de carta
-CARD_TYPES = {
-    'ATTACK':  'Ataque',
-    'DEFENSE': 'Defesa',
-    'DODGE':   'Esquiva'
+# Cores por estado da carta
+CARD_STATE_COLORS = {
+    "idle": (180, 180, 180),
+    "selected": (100, 200, 100),
+    "exhausted": (150, 50, 50)
 }
 
 # Composição padrão do baralho
 DECK_COMPOSITION = {
-    CARD_TYPES['ATTACK']: 5,
-    CARD_TYPES['DEFENSE']: 2,
-    CARD_TYPES['DODGE']:  0
+    "Ataque": 5,
+    "Defesa": 2,
+    "Buff": 1,
+    "Debuff": 1
 }
 
 # Faixa de valores possíveis por tipo de carta
 CARD_VALUE_RANGES = {
-    CARD_TYPES['ATTACK']:  (10, 15),
-    CARD_TYPES['DEFENSE']: (1, 2),
-    CARD_TYPES['DODGE']:   (0, 1)
+    "Ataque":  (10, 15),
+    "Defesa": (5, 10),
+    "Buff": (1, 3),
+    "Debuff": (1, 3)
 }
 
-# Tamanho das cartas
-CARD_WIDTH  = 100
-CARD_HEIGHT = 150
-
-ELEMENT_ICONS = None
-
-def get_element_icons():
-    """Carrega os ícones apenas quando necessário"""
-    global ELEMENT_ICONS
-    if ELEMENT_ICONS is None:
-        ELEMENT_ICONS = {
-            "Fogo": pygame.image.load("assets/fogo.png").convert_alpha(),
-            "Água": pygame.image.load("assets/agua.png").convert_alpha(),
-            "Terra": pygame.image.load("assets/terra.png").convert_alpha(),
-            "Ar": pygame.image.load("assets/ar.png").convert_alpha()
-        }
-        # Redimensiona os ícones
-        for element, icon in ELEMENT_ICONS.items():
-            ELEMENT_ICONS[element] = pygame.transform.scale(icon, (24, 24))
-    return ELEMENT_ICONS
+# --- CAMINHOS DE ASSETS (para serem carregados pela classe Assets) ---
+ELEMENT_ICON_PATHS = {
+    "Fogo": "assets/fogo.png",
+    "Água": "assets/agua.png",
+    "Terra": "assets/terra.png",
+    "Ar": "assets/ar.png"
+}

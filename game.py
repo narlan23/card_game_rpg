@@ -1,77 +1,68 @@
 import pygame
 import sys
 
-# Importações de classes e configurações
+# Importa as classes de gerenciamento e os dados do jogador
 from assets import Assets
 from characters.player import Player
 from characters.deck import generate_deck
-from config import font_path
+# Importa as constantes de configuração
+from config import SCREEN_WIDTH, SCREEN_HEIGHT
 
-# Importações dos estados do jogo
+# Importa as classes de estado que serão usadas
+from states.base_state import BaseState
 from states.main_menu import MainMenu
 from states.jogo_principal import JogoPrincipal
 from states.caracteristicas import Caracteristicas
-# A Batalha não é mais criada aqui, mas recebida como um objeto
-# from states.batalha import Batalha 
+# A classe Batalha será importada dinamicamente quando necessária
 
 class Game:
     """
-    Classe principal que gerencia o jogo, os estados e o loop principal.
-    Utiliza uma pilha de estados para um gerenciamento mais flexível das telas.
+    Classe principal que gerencia a janela, o loop do jogo, os assets
+    e a pilha de estados (telas).
     """
     def __init__(self):
         """Inicializa o Pygame, a tela e os componentes centrais do jogo."""
         pygame.init()
         
-        self.screen_width = 800
-        self.screen_height = 600
+        self.screen_width = SCREEN_WIDTH
+        self.screen_height = SCREEN_HEIGHT
         self.SCREEN = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("Meu Card Game RPG")
+        pygame.display.set_caption("Card Game RPG")
 
         self.CLOCK = pygame.time.Clock()
         self.running = True
 
         self.assets = Assets()
-        self.player = None
+        self.player = self.create_player()
+        
         self.state_stack = []
-
-        self.load_assets()
-        self.create_player()
         self.load_initial_state()
-
-    def load_assets(self):
-        """Carrega todos os assets iniciais necessários para o jogo."""
-        print("Carregando fontes...")
-        self.assets.load_font("default", font_path, 18)
-        self.assets.load_font("small", font_path, 12)
-        self.assets.load_font("large", font_path, 24)
-        print("Assets carregados com sucesso!")
 
     def create_player(self):
         """Cria a instância do jogador e configura seu deck inicial."""
-        self.player = Player("Herói", max_energy=3, max_health=100)
+        player = Player("Herói", max_energy=3, max_health=100)
+        player.attributes = {"Força": 10, "Destreza": 8, "Inteligência": 12}
         deck = generate_deck()
-        self.player.set_deck(deck)
-        self.player.draw_card(5)
+        player.set_deck(deck)
+        player.draw_card(5)
         print("Jogador criado e deck configurado.")
+        return player
 
     def load_initial_state(self):
         """Cria e carrega o estado inicial do jogo na pilha."""
-        self.push_state("MENU_PRINCIPAL")
+        self.push_state(MainMenu(self))
 
     def get_active_state(self):
         """Retorna o estado que está no topo da pilha."""
         return self.state_stack[-1] if self.state_stack else None
 
-    # ========================================================================
-    # CORREÇÃO PRINCIPAL ESTÁ AQUI
-    # ========================================================================
+    # --- Gerenciamento da Pilha de Estados ---
+
     def push_state(self, state):
         """
         Adiciona um novo estado ao topo da pilha.
         Pode receber uma string com o nome do estado ou uma instância de estado já criada.
         """
-        # Se 'state' for uma string, cria a instância correspondente
         if isinstance(state, str):
             if state == "MENU_PRINCIPAL":
                 new_state = MainMenu(self)
@@ -82,10 +73,15 @@ class Game:
             else:
                 print(f"Erro: Tentativa de criar estado desconhecido pelo nome: '{state}'")
                 return
+            
+            # ========================================================================
+            # CORREÇÃO PRINCIPAL ESTÁ AQUI
+            # Estávamos adicionando 'state' (a string) em vez de 'new_state' (o objeto)
+            # ========================================================================
             self.state_stack.append(new_state)
 
-        # Se 'state' já for uma instância de um estado, apenas a adiciona
         else:
+            # Se 'state' já for um objeto (como no caso da Batalha), apenas o adiciona
             self.state_stack.append(state)
 
     def pop_state(self):
@@ -95,14 +91,16 @@ class Game:
         if not self.state_stack:
             self.running = False
 
-    def change_state(self, state):
-        """Muda o estado atual, limpando a pilha e adicionando um novo."""
+    def change_state(self, new_state):
+        """Limpa a pilha de estados e adiciona um novo estado."""
         while self.state_stack:
             self.state_stack.pop()
-        self.push_state(state)
+        self.push_state(new_state)
+
+    # --- Loop Principal ---
 
     def game_loop(self):
-        """O loop principal do jogo."""
+        """O loop principal do jogo que roda continuamente."""
         while self.running:
             events = pygame.event.get()
             active_state = self.get_active_state()

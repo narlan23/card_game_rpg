@@ -1,13 +1,12 @@
 import pygame
-from .battle_state import BattleState
-from .enemy import Enemy
+from batalha.battle_state import BattleState
+from batalha.enemy import Enemy
 from characters.hand_renderer import HandRenderer
 from batalha.animation_manager import AnimationManager
 from batalha.status_manager import StatusManager
 from batalha.turn_manager import TurnManager
 from batalha.render_manager import RenderManager
 from batalha.input_manager import InputManager
-
 
 class BattleManager:
     def __init__(self, game):
@@ -25,40 +24,55 @@ class BattleManager:
         # Grupos de entidades
         self.enemies = pygame.sprite.Group()
         
-        # Renderizador da mão
+        # ========================================================================
+        # CORREÇÃO PRINCIPAL ESTÁ AQUI
+        # A chamada ao construtor do HandRenderer foi atualizada.
+        # ========================================================================
         self.hand_renderer = HandRenderer(
-            game.player,
-            screen_width=game.screen_width - 200,
-            hand_y=game.screen_height - 150,
+            game=self.game,
+            player=self.game.player,
+            hand_y=self.game.screen_height - 150,
             align="center"
         )
 
     def setup_battle(self, enemies_data):
-        """Inicializa os inimigos e reseta estado do jogador."""
+        """Inicializa os inimigos e reseta o estado do jogador."""
         positions = self._enemy_positions()
 
         for i, data in enumerate(enemies_data[:len(positions)]):
-            enemy = Enemy(
-                data["name"], data["health"], data["attack"],
-                data["image"], positions[i]
-            )
-            self.enemies.add(enemy)
+            # Tenta carregar a imagem do inimigo individualmente
+            self.game.assets.load_image(data["name"], data["image"])
+            enemy_image = self.game.assets.get_image(data["name"])
+            
+            if enemy_image:
+                enemy = Enemy(
+                    data["name"], data["health"], data["attack"],
+                    enemy_image, positions[i]
+                )
+                self.enemies.add(enemy)
+            else:
+                print(f"AVISO: Imagem para o inimigo '{data['name']}' não encontrada. Inimigo não foi criado.")
 
         self.turn_manager.reset_player_turn()
         self.turn_manager.enemy_turn_started = False
 
     def _enemy_positions(self):
         """Retorna posições pré-definidas para até 3 inimigos."""
+        num_enemies = len(self.enemies.sprites())
+        screen_width = self.game.screen_width
+        screen_height = self.game.screen_height
+        
+        # Posições dinâmicas baseadas no número de inimigos
         return [
-            (self.game.screen_width * (i + 1) // 4, self.game.screen_height // 4)
-            for i in range(3)
+            ((screen_width * (i + 1)) / (num_enemies + 1), screen_height // 3)
+            for i in range(num_enemies)
         ]
 
     def handle_click(self, pos):
         """Delega o tratamento de clique para o input manager."""
         return self.input_manager.handle_click(pos)
 
-    def update(self, dt=16):
+    def update(self, dt=16): # dt pode ser passado pelo loop principal para consistência
         """Atualiza o estado da batalha."""
         self.animation_manager.update()
         
@@ -73,6 +87,9 @@ class BattleManager:
 
     def check_battle_end_conditions(self):
         """Verifica condições de fim de batalha."""
+        if not self.enemies: # Se não houver inimigos
+            self.state = BattleState.VICTORY
+            return True
         if all(enemy.health <= 0 for enemy in self.enemies):
             self.state = BattleState.VICTORY
             return True
