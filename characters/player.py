@@ -16,7 +16,7 @@ class Player:
 
         # Defesa e status
         self.shield = 0  # escudo que absorve dano
-        self.status_effects = {}  # Ex: {"vulneravel": {"duration": 2}}
+        self.status_effects = {}  # Ex: {"força": {"power": 2, "duration": 3}}
 
         # Deck, mão e descarte
         self.deck = []
@@ -31,14 +31,25 @@ class Player:
     # -------------------------------
     def take_damage(self, amount: int):
         """Recebe dano levando em conta escudo e status."""
+        original_amount = amount
+        
+        # Verifica se esquiva o ataque
+        if self.has_status("esquiva"):
+            if random.random() < 0.5:  # 50% chance de esquivar
+                print(f"{self.name} esquivou do ataque!")
+                self.remove_status("esquiva")
+                return False  # Não morreu
+
         if self.shield > 0:
             absorbed = min(amount, self.shield)
             self.shield -= absorbed
             amount -= absorbed
             print(f"{self.name} bloqueou {absorbed} de dano com escudo!")
 
-        if self.has_status("vulneravel"):
-            amount = int(amount * 1.5)  # arredonda para inteiro
+        # Aplica vulnerabilidade
+        if self.has_status("vulnerabilidade") or self.has_status("vulneravel"):
+            multiplier = self.status_effects.get("vulnerabilidade", self.status_effects.get("vulneravel", {})).get("multiplier", 1.5)
+            amount = int(amount * multiplier)
             print(f"O dano foi aumentado para {amount} devido à vulnerabilidade!")
 
         if amount > 0:
@@ -51,7 +62,10 @@ class Player:
         """Recupera vida até o máximo permitido."""
         old_health = self.health
         self.health = min(self.max_health, self.health + amount)
-        print(f"{self.name} curou {self.health - old_health} de vida.")
+        healed = self.health - old_health
+        if healed > 0:
+            print(f"{self.name} curou {healed} de vida.")
+        return healed
 
     def is_alive(self):
         return self.health > 0
@@ -82,7 +96,7 @@ class Player:
     # -------------------------------
     def add_status(self, status: str, **kwargs):
         """Adiciona ou atualiza efeitos de status (buffs/debuffs)."""
-        self.status_effects[status] = kwargs
+        self.status_effects[status] = kwargs.copy()  # Usa copy para evitar referências
         print(f"{self.name} ganhou status: {status} {kwargs}")
 
     def has_status(self, status: str):
@@ -179,11 +193,10 @@ class Player:
             return self.deselect_card(self.hand[index])
         return False
 
-    def use_selected_cards(self):
+    def use_selected_cards(self, target=None):
         """Consome cartas selecionadas."""
         for card in self.selected_cards:
-            card.use()
-            # opcional: self.discard_card(card)
+            card.use(self, target)
         self.selected_cards.clear()
 
     def get_selected_cards(self):
@@ -193,13 +206,14 @@ class Player:
         """Reseta seleção de cartas sem consumir energia."""
         for card in self.selected_cards:
             card.state = "idle"
+            self.gain_energy(card.energy_cost)  # Devolve energia
         self.selected_cards.clear()
 
     def play_card(self, card, target=None):
         """Atalho para jogar uma carta imediatamente."""
         if not self.select_card(card):
             return False
-        card.use(target)
+        card.use(self, target)
         self.discard_card(card)
         if card in self.selected_cards:
             self.selected_cards.remove(card)
@@ -235,4 +249,5 @@ class Player:
         return (f"{self.name} | HP: {self.health}/{self.max_health} | "
                 f"Energy: {self.energy}/{self.max_energy} | "
                 f"Shield: {self.shield} | "
-                f"Hand: {[c.card_type for c in self.hand]}")
+                f"Status: {list(self.status_effects.keys())} | "
+                f"Hand: {len(self.hand)} cards")

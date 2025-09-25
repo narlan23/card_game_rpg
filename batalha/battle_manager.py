@@ -66,6 +66,7 @@ class BattleManager:
             return
 
         self.turn_manager.update(dt)
+        
 
     def draw(self, surface):
         """Delega a renderização para o render manager."""

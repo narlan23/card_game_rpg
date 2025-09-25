@@ -23,7 +23,7 @@ class Card:
     DEFAULT_ENERGY_COST = 1
 
     def __init__(self, card_type: CardType, value: int, element: str,
-                 max_uses=None, energy_cost=None):
+                 max_uses=None, energy_cost=None, status_effect=None, status_kwargs=None):
         if not isinstance(card_type, CardType):
             raise ValueError(f"Tipo de carta inválido: {card_type}")
 
@@ -33,6 +33,8 @@ class Card:
         self.card_type = card_type
         self.value = value
         self.element = element
+        self.status_effect = status_effect
+        self.status_kwargs = status_kwargs or {}
 
         self.state = CardState.IDLE
         self.max_uses = max_uses or self.DEFAULT_MAX_USES
@@ -52,7 +54,7 @@ class Card:
     def clone(self, keep_state=False):
         """Cria cópia da carta. Se keep_state=True, mantém usos e estado."""
         new_card = Card(self.card_type, self.value, self.element,
-                        self.max_uses, self.energy_cost)
+                        self.max_uses, self.energy_cost, self.status_effect, self.status_kwargs)
         if keep_state:
             new_card.uses_left = self.uses_left
             new_card.state = self.state
@@ -130,37 +132,53 @@ class Card:
 
     # ---- Métodos privados para modularizar efeitos ----
     def _apply_attack(self, user, target):
-        if not target:
+        if not target or not hasattr(target, "take_damage"):
             return
-        if hasattr(target, "take_damage"):
-            target.take_damage(self.value)
+        
+        # Usa o StatusManager para cálculo consistente de dano
+        if hasattr(user, "battle_manager") and hasattr(user.battle_manager, "status_manager"):
+            base_damage = self.value
+            final_damage = user.battle_manager.status_manager.calculate_player_damage(base_damage, self)
+            target.take_damage(final_damage)
+            print(f"{user.name} atacou {target.name} causando {final_damage} de dano!")
         else:
-            target.health -= self.value
-        print(f"{user.name} atacou {target.name} causando {self.value} de dano!")
+            # Fallback: cálculo básico se não houver StatusManager
+            target.take_damage(self.value)
+            print(f"{user.name} atacou {target.name} causando {self.value} de dano!")
 
     def _apply_defense(self, user):
-        user.add_shield(self.value)
-        print(f"{user.name} ganhou {self.value} de escudo!")
+        if hasattr(user, "add_shield"):
+            user.add_shield(self.value)
+            print(f"{user.name} ganhou {self.value} de escudo!")
 
     def _apply_dodge(self, user):
-        user.add_status("esquiva", duration=1)
-        print(f"{user.name} se preparou para esquivar o próximo ataque!")
+        if hasattr(user, "add_status"):
+            user.add_status("esquiva", duration=1)
+            print(f"{user.name} se preparou para esquivar o próximo ataque!")
 
     def _apply_buff(self, user):
-        user.add_status("buff", power=self.value, duration=2)
-        print(f"{user.name} recebeu um buff de {self.value}!")
+        if hasattr(user, "add_status"):
+            # Usa status_effect específico se definido, senão usa "força" como padrão
+            status_name = self.status_effect if self.status_effect else "força"
+            user.add_status(status_name, power=self.value, duration=2, **self.status_kwargs)
+            print(f"{user.name} recebeu um buff de {self.value}!")
 
     def _apply_debuff(self, target):
-        target.add_status("vulneravel", power=self.value, duration=2)
-        print(f"{target.name} recebeu um debuff de {self.value}!")
+        if hasattr(target, "add_status"):
+            # Usa status_effect específico se definido, senão usa "fraqueza" como padrão
+            status_name = self.status_effect if self.status_effect else "fraqueza"
+            target.add_status(status_name, power=self.value, duration=2, **self.status_kwargs)
+            print(f"{target.name} recebeu um debuff de {self.value}!")
 
     def _apply_special(self, user, target):
-        if hasattr(target, "take_damage"):
+        if not target or not hasattr(target, "take_damage"):
+            return
+            
+        if hasattr(user, "heal"):
+            # Drena vida: causa dano no alvo e cura o usuário
             target.take_damage(self.value)
-        else:
-            target.health -= self.value
-        user.heal(self.value // 2)
-        print(f"{user.name} drenou {self.value} de vida de {target.name}!")
+            user.heal(self.value // 2)
+            print(f"{user.name} drenou {self.value} de vida de {target.name}!")
 
 
 def generate_deck(size=10):

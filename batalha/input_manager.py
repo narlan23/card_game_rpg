@@ -97,7 +97,7 @@ class InputManager:
             return True
 
     # -------------------------
-    # Clique em inimigo
+    # Clique em inimigo (REVISADO)
     # -------------------------
     def _handle_enemy_click(self, pos):
         """Verifica se clicou em inimigo com carta selecionada."""
@@ -110,11 +110,18 @@ class InputManager:
                 print(f"[DEBUG] Inimigo {enemy.name} clicado. HP={enemy.health}")
                 if enemy.health <= 0:
                     print("[DEBUG] Inimigo já está morto. Cancelando.")
-                    self.battle_manager.game.player.clear_selected_cards()
+                    self.battle_manager.game.player.reset_selection()
                     return False
-                print("[DEBUG] Resolvendo efeitos no inimigo.")
+                
+                # A lógica agora está unificada aqui. Chama a função de resolução de efeito
+                # para o primeiro inimigo clicado.
                 self._resolve_card_effects(enemy)
+                
+                # Depois que o efeito for resolvido, limpa a seleção
+                self.battle_manager.game.player.reset_selection()
+                self.battle_manager.hand_renderer.update_card_positions()
                 return True
+                
         return False
 
     # -------------------------
@@ -127,23 +134,21 @@ class InputManager:
             return False
 
         player = self.battle_manager.game.player
+        # A nova lógica de clique em inimigo já tem a responsabilidade de limpar a seleção.
+        # Esta função é para tratar cliques em cartas que afetam o próprio jogador.
+        # A lógica para buffs e defesa deve ser chamada aqui.
         if player.rect.collidepoint(pos):
             print("[DEBUG] Player clicado. Aplicando efeitos.")
             self._resolve_card_effects(player)
+            self.battle_manager.game.player.reset_selection()
+            self.battle_manager.hand_renderer.update_card_positions()
             return True
 
         return False
 
     # -------------------------
-    # Aplicação de efeitos
+    # Aplicação de efeitos (REVISADO)
     # -------------------------
-    def _resolve_defense_card(self, card):
-        """Aplica carta de defesa diretamente no jogador."""
-        print(f"[DEBUG] Aplicando DEFESA ao jogador. Valor={card.value}")
-        self.battle_manager.game.player.shield += card.value
-        card.use()
-        self.battle_manager.hand_renderer.update_card_positions()
-
     def _resolve_card_effects(self, target):
         """Aplica efeitos das cartas selecionadas no alvo."""
         if hasattr(target, "health") and target.health <= 0:
@@ -153,22 +158,28 @@ class InputManager:
         for card in self.battle_manager.game.player.get_selected_cards():
             print(f"[DEBUG] Aplicando {card.card_type} em {target.name if hasattr(target, 'name') else 'Player'}")
 
+            # Lógica para cartas de ATAQUE
             if card.card_type == CardType.ATAQUE.value and target != self.battle_manager.game.player:
                 base_damage = card.value
                 final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, card)
                 print(f"[DEBUG] Dano calculado={final_damage}")
-                target.take_damage(final_damage)
+                
+                # O dano está sendo aplicado corretamente aqui:
+                target.take_damage(final_damage) 
                 self.battle_manager.animation_manager.spawn_damage_animation(target, final_damage)
 
+            # Lógica para cartas de DEFESA
             elif card.card_type == CardType.DEFESA.value and target == self.battle_manager.game.player:
                 self._resolve_defense_card(card)
 
-            elif card.card_type == CardType.BUFF.value and target == self.battle_manager.game.player:
+            # Lógica para cartas de BUFF
+            elif card.card_type == CardType.BUFF.value: 
                 if hasattr(card, 'status_effect'):
                     print(f"[DEBUG] Aplicando BUFF {card.status_effect}")
                     self.battle_manager.status_manager.apply_status_to_target(
                         target, card.status_effect, **card.status_kwargs)
 
+            # Lógica para cartas de DEBUFF
             elif card.card_type == CardType.DEBUFF.value and target != self.battle_manager.game.player:
                 if hasattr(card, 'status_effect'):
                     print(f"[DEBUG] Aplicando DEBUFF {card.status_effect}")
@@ -177,7 +188,9 @@ class InputManager:
 
             card.use()
 
-        print("[DEBUG] Limpando cartas selecionadas.")
-        self.battle_manager.game.player.use_selected_cards()
+    def _resolve_defense_card(self, card):
+        """Aplica carta de defesa diretamente no jogador."""
+        print(f"[DEBUG] Aplicando DEFESA ao jogador. Valor={card.value}")
+        self.battle_manager.game.player.shield += card.value
+        card.use()
         self.battle_manager.hand_renderer.update_card_positions()
-        self.battle_manager.check_battle_end_conditions()
