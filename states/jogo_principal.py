@@ -7,25 +7,13 @@ from jogo_principal.tileset import TiledMap
 from jogo_principal.dialog import Dialogo
 from characters.npc import NPC
 from states.batalha import Batalha
+from states.base_state import BaseState
 
 # 1. Defina os dados dos inimigos para este encontro
 dados_inimigos_da_torre = [
     {"name": "Goblin", "health": 30, "attack": 5, "image": "goblin.png"},
     {"name": "Orc", "health": 50, "attack": 8, "image": "orc.png"},
 ]
-
-# É uma boa prática ter uma classe base para todos os estados
-class BaseState:
-    """Classe base para todos os estados do jogo."""
-    def __init__(self, game):
-        self.game = game
-
-    def handle_events(self, events):
-        pass
-    def update(self):
-        pass
-    def draw(self, surface):
-        pass
 
 class JogoPrincipal(BaseState):
     """

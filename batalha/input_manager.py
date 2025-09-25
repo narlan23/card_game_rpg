@@ -1,5 +1,6 @@
 import pygame
 from batalha.battle_state import BattleState
+from characters.cards import CardType
 from batalha.ui import END_TURN_BUTTON
 
 class InputManager:
@@ -45,13 +46,13 @@ class InputManager:
         card = self.battle_manager.game.player.hand[card_index]
         self.battle_manager.game.player.select_card_by_index(card_index)
 
-        if card.card_type == "Ataque":
+        if card.card_type == CardType.ATAQUE.value:
             return True  # Aguarda seleção de alvo
 
-        elif card.card_type == "Defesa":
+        elif card.card_type == CardType.DEFESA.value:
             return self._handle_defense_card_click(card_index)
 
-        elif card.card_type == "Status":
+        elif card.card_type in (CardType.BUFF.value, CardType.DEBUFF.value):
             return True  # Aguarda clique no alvo
 
         return False
@@ -64,7 +65,6 @@ class InputManager:
             # Duplo clique -> aplicar defesa
             card = self.battle_manager.game.player.hand[card_index]
             self._resolve_defense_card(card)
-            self.battle_manager.game.player.selected_card = None
             return True
         else:
             # Primeiro clique
@@ -96,15 +96,15 @@ class InputManager:
             return
 
         for card in self.battle_manager.game.player.get_selected_cards():
-            if card.card_type == "Ataque":
+            if card.card_type == CardType.ATAQUE.value:
                 base_damage = card.value
                 final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, card)
                 target.take_damage(final_damage)
                 self.battle_manager.animation_manager.spawn_damage_animation(target, final_damage)
 
-            elif card.card_type == "Status" and hasattr(card, 'status_effect'):
+            elif card.card_type in (CardType.BUFF.value, CardType.DEBUFF.value) and hasattr(card, 'status_effect'):
                 self.battle_manager.status_manager.apply_status_to_target(
-                    target, card.status_effect, **card.status_kwargs)
+                target, card.status_effect, **card.status_kwargs)
 
             elif card.card_type == "Defesa" and target == self.battle_manager.game.player:
                 self._resolve_defense_card(card)

@@ -1,27 +1,26 @@
 import random
-from config import ELEMENTS
-from characters.cards import Card
+from config import ELEMENTS, CARD_TYPES
+from characters.cards import Card, CardType
 
 
 # -------------------------
 # Configurações do baralho
 # -------------------------
 DECK_COMPOSITION = {
-    "Ataque": 3,
-    "Defesa": 1,
-    "Esquiva": 1,
-    "Buff": 2,
-    "Debuff": 2,
-    # Total = 8 cartas
+    CardType.ATAQUE.value: 1,
+    CardType.DEFESA.value: 0,
+    CardType.ESQUIVA.value: 0,
+    CardType.BUFF.value: 2,
+    CardType.DEBUFF.value: 2,
 }
 
 CARD_VALUE_RANGES = {
-    "Ataque": (5, 12),
-    "Defesa": (3, 8),
-    "Esquiva": (0, 0),
-    "Buff": (1, 3),
-    "Debuff": (1, 2),
-    "Especial": (6, 10),  # opcional para futuro
+    CardType.ATAQUE.value: (5, 12),
+    CardType.DEFESA.value: (3, 8),
+    CardType.ESQUIVA.value: (0, 0),
+    CardType.BUFF.value: (1, 3),
+    CardType.DEBUFF.value: (1, 2),
+    CardType.ESPECIAL.value: (6, 10),
 }
 
 
@@ -50,19 +49,13 @@ def generate_deck(thematic_element=None):
         card = Card(card_type, value, element)
 
         # Adicionar efeitos extras se necessário
-        if card_type == "Buff":
+        if card_type == CardType.BUFF.value:
             card.status_effect = "força"
             card.status_kwargs = {"power": value, "duration": 2}
 
-        elif card_type == "Debuff":
+        elif card_type == CardType.DEBUFF.value:
             card.status_effect = "fraqueza"
             card.status_kwargs = {"multiplier": 0.75, "duration": 2}
-
-        # Log detalhado
-        print(f"[{idx+1}] Carta gerada -> "
-              f"Tipo: {card.card_type}, Valor: {card.value}, "
-              f"Elemento: {card.element}, Estado: {card.state}, "
-              f"Status: {getattr(card, 'status_effect', None)}")
 
         deck.append(card)
 
