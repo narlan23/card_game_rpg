@@ -107,7 +107,7 @@ def draw_card(screen, card, x, y, selected=False, width=100, height=150):
     font_large = pygame.font.SysFont("arial", 16, bold=True)
     
     # Desenha o tipo da carta (no topo)
-    type_text = font_medium.render(card.card_type, True, BLACK)
+    type_text = font_medium.render(card.card_type.value, True, BLACK)
     screen.blit(type_text, (x + width//2 - type_text.get_width()//2, y + 10))
     
     # Desenha o elemento (círculo colorido)

@@ -4,7 +4,7 @@ import sys
 # Importações de classes e configurações
 from assets import Assets
 from characters.player import Player
-from characters.deck import generate_deck
+from characters.cards import generate_deck
 from config import font_path
 
 # Importações dos estados do jogo
