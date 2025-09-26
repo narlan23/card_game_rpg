@@ -96,10 +96,6 @@ class StatusManager:
         if hasattr(target, "add_status"):
             target.add_status(status_name, **kwargs)
 
-            if hasattr(self.battle_manager, "animation_manager"):
-                self.battle_manager.animation_manager.spawn_status_animation(
-                    target, status_name
-                )
 
     # ------------------ IMPLEMENTAÇÃO DE EFEITOS ------------------
 

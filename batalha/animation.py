@@ -1,5 +1,7 @@
 import pygame
 
+
+
 class DamageAnimation:
     def __init__(self, target, amount, is_player=False, screen_width=800, hand_y=400):
         self.target = target
@@ -16,6 +18,7 @@ class DamageAnimation:
         self.lifetime = 60  # frames
         self.current_frame = 0
         self.is_finished = False
+        
         
     def update(self):
         self.current_frame += 1
