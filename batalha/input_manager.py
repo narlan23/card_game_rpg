@@ -159,28 +159,28 @@ class InputManager:
             print(f"[DEBUG] Aplicando {card.card_type} em {target.name if hasattr(target, 'name') else 'Player'}")
 
             # Lógica para cartas de ATAQUE
-            if card.card_type == CardType.ATAQUE.value and target != self.battle_manager.game.player:
+            if card.card_type == CardType.ATAQUE and target != self.battle_manager.game.player:
                 base_damage = card.value
                 final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, card)
                 print(f"[DEBUG] Dano calculado={final_damage}")
                 
                 # O dano está sendo aplicado corretamente aqui:
-                target.take_damage(final_damage) 
+                self.battle_manager.apply_damage_to_enemy(target, final_damage)
                 self.battle_manager.animation_manager.spawn_damage_animation(target, final_damage)
 
             # Lógica para cartas de DEFESA
-            elif card.card_type == CardType.DEFESA.value and target == self.battle_manager.game.player:
+            elif card.card_type == CardType.DEFESA and target == self.battle_manager.game.player:
                 self._resolve_defense_card(card)
 
             # Lógica para cartas de BUFF
-            elif card.card_type == CardType.BUFF.value: 
+            elif card.card_type == CardType.BUFF: 
                 if hasattr(card, 'status_effect'):
                     print(f"[DEBUG] Aplicando BUFF {card.status_effect}")
                     self.battle_manager.status_manager.apply_status_to_target(
                         target, card.status_effect, **card.status_kwargs)
 
             # Lógica para cartas de DEBUFF
-            elif card.card_type == CardType.DEBUFF.value and target != self.battle_manager.game.player:
+            elif card.card_type == CardType.DEBUFF and target != self.battle_manager.game.player:
                 if hasattr(card, 'status_effect'):
                     print(f"[DEBUG] Aplicando DEBUFF {card.status_effect}")
                     self.battle_manager.status_manager.apply_status_to_target(

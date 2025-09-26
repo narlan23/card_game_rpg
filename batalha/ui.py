@@ -84,7 +84,6 @@ def draw_player_status(surface, player, x, y):
     player.rect = pygame.Rect(x, y, bar_width, 80)  
     # Agora o InputManager pode usar player.rect.collidepoint(pos)
 
-
 # Configuração do botão End Turn
 END_TURN_BUTTON = pygame.Rect(650, 500, 140, 40)  # posição e tamanho
 

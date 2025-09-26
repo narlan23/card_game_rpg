@@ -66,6 +66,12 @@ class BattleManager:
             return
 
         self.turn_manager.update(dt)
+
+    def apply_damage_to_enemy(self, enemy, damage):
+        """Aplica dano ao inimigo e verifica condições de fim de batalha."""
+        enemy.take_damage(damage)
+        self.animation_manager.spawn_damage_animation(enemy, damage, is_player=False)
+        self.check_battle_end_conditions()
         
 
     def draw(self, surface):

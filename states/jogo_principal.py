@@ -11,8 +11,8 @@ from states.base_state import BaseState
 
 # 1. Defina os dados dos inimigos para este encontro
 dados_inimigos_da_torre = [
-    {"name": "Goblin", "health": 30, "attack": 5, "image": "goblin.png"},
-    {"name": "Orc", "health": 50, "attack": 8, "image": "orc.png"},
+    {"name": "Goblin", "health": 3, "attack": 1, "image": "goblin.png"},
+    {"name": "Orc", "health": 5, "attack": 1, "image": "orc.png"},
 ]
 
 class JogoPrincipal(BaseState):
