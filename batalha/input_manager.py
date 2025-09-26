@@ -63,7 +63,14 @@ class InputManager:
     def _process_card_click(self, card_index, pos):
         """Processa o clique em uma carta específica."""
         card = self.battle_manager.game.player.hand[card_index]
-        print(f"[DEBUG] Processando carta {card_index}: tipo={card.card_type}, valor={card.value}")
+        # Debug detalhado da carta
+        print("\n[DEBUG] ===== Carta Clicada =====")
+        print(f"Índice: {card_index}")
+        print(card)  # usa __str__ -> tipo, valor, elemento, usos, energia
+        print(f"Estado: {card.state}")
+        print(f"Efeito de status: {card.status_effect}")
+        print(f"Args do efeito: {card.status_kwargs}")
+        print("===============================\n")
 
         self.battle_manager.game.player.select_card_by_index(card_index)
 

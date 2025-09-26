@@ -18,6 +18,74 @@ class CardType(Enum):
     ESPECIAL = "Especial"
 
 
+# -----------------------------
+# Biblioteca de Cartas baseada no Player
+# -----------------------------
+CARD_LIBRARY = {
+    # ATAQUES
+    "ataque_fraco": {"type": CardType.ATAQUE, "value": 6, "element": "Fogo"},
+    "ataque_medio": {"type": CardType.ATAQUE, "value": 12, "element": "Água"},
+    "ataque_forte": {"type": CardType.ATAQUE, "value": 20, "element": "Terra"},
+
+    # DEFESAS
+    "defesa_basica": {"type": CardType.DEFESA, "value": 8, "element": "Terra"},
+    "defesa_forte": {"type": CardType.DEFESA, "value": 14, "element": "Água"},
+
+    # ESQUIVA
+    "esquiva_basica": {"type": CardType.ESQUIVA, "value": 0, "element": "Ar"},
+
+    # BUFFS
+    "buff_ataque": {
+        "type": CardType.BUFF,
+        "value": 2,
+        "element": "Fogo",
+        "status_effect": "ataque_up",
+        "status_kwargs": {"duration": 2, "power": 2},
+    },
+    "buff_defesa": {
+        "type": CardType.BUFF,
+        "value": 3,
+        "element": "Terra",
+        "status_effect": "defesa_up",
+        "status_kwargs": {"duration": 2, "power": 3},
+    },
+    "buff_regeneracao": {
+        "type": CardType.BUFF,
+        "value": 0,
+        "element": "Água",
+        "status_effect": "regeneracao",
+        "status_kwargs": {"duration": 3, "power": 2},
+    },
+
+    # DEBUFFS
+    "debuff_queimadura": {
+        "type": CardType.DEBUFF,
+        "value": 2,
+        "element": "Fogo",
+        "status_effect": "queimadura",
+        "status_kwargs": {"duration": 3, "damage": 2},
+    },
+    "debuff_lentidao": {
+        "type": CardType.DEBUFF,
+        "value": -1,
+        "element": "Terra",
+        "status_effect": "lentidao",
+        "status_kwargs": {"duration": 2, "power": -1},
+    },
+    "debuff_confusao": {
+        "type": CardType.DEBUFF,
+        "value": 0,
+        "element": "Ar",
+        "status_effect": "confusao",
+        "status_kwargs": {"duration": 2},
+    },
+
+    # ESPECIAIS
+    "especial_explosao": {"type": CardType.ESPECIAL, "value": 25, "element": "Fogo"},
+    "especial_tsunami": {"type": CardType.ESPECIAL, "value": 20, "element": "Água"},
+}
+
+
 class Card:
     DEFAULT_MAX_USES = 5
     DEFAULT_ENERGY_COST = 1
@@ -41,18 +109,10 @@ class Card:
         self.uses_left = self.max_uses
         self.energy_cost = energy_cost if energy_cost is not None else self.DEFAULT_ENERGY_COST
 
-    # -----------------------------
-    # Representação
-    # -----------------------------
     def __str__(self):
-        return (
-            f"[{self.card_type.value}] {self.element} {self.value} "
-            f"| Usos {self.uses_left}/{self.max_uses} "
-            f"| Energia {self.energy_cost}"
-        )
+        return f"[{self.card_type.value}] {self.element} {self.value} | Usos {self.uses_left}/{self.max_uses} | Energia {self.energy_cost}"
 
     def clone(self, keep_state=False):
-        """Cria cópia da carta. Se keep_state=True, mantém usos e estado."""
         new_card = Card(self.card_type, self.value, self.element,
                         self.max_uses, self.energy_cost, self.status_effect, self.status_kwargs)
         if keep_state:
@@ -60,19 +120,12 @@ class Card:
             new_card.state = self.state
         return new_card
 
-    # -----------------------------
-    # Controle de usos
-    # -----------------------------
     def use(self, user=None, target=None, apply_effect=True):
-        """Consome 1 uso da carta e opcionalmente aplica o efeito."""
         if not self.is_active():
             return False
 
         self.uses_left -= 1
-        if self.uses_left <= 0:
-            self.state = CardState.EXHAUSTED
-        else:
-            self.state = CardState.IDLE
+        self.state = CardState.EXHAUSTED if self.uses_left <= 0 else CardState.IDLE
 
         if apply_effect:
             self.apply_effect(user, target)
@@ -80,69 +133,42 @@ class Card:
         return True
 
     def reset(self):
-        """Restaura os usos e estado da carta."""
         self.uses_left = self.max_uses
         self.state = CardState.IDLE
 
     def reset_uses(self):
-        """Só reseta usos (sem mexer no estado)."""
         self.uses_left = self.max_uses
 
-    # -----------------------------
-    # Verificações
-    # -----------------------------
     def is_active(self):
-        """Pode ser usada?"""
         return self.uses_left > 0
 
     def is_exhausted(self):
         return self.state == CardState.EXHAUSTED or self.uses_left == 0
 
     def requires_energy(self, current_energy: int) -> bool:
-        """Verifica se há energia suficiente para jogar a carta."""
         return current_energy >= self.energy_cost
 
-    # -----------------------------
-    # Efeito da carta
-    # -----------------------------
     def apply_effect(self, user, target):
-        """Executa o efeito da carta."""
         if not user:
-            return  # segurança: não aplica se não tiver contexto
+            return
 
         if self.card_type == CardType.ATAQUE:
             self._apply_attack(user, target)
-
         elif self.card_type == CardType.DEFESA:
             self._apply_defense(user)
-
         elif self.card_type == CardType.ESQUIVA:
             self._apply_dodge(user)
-
         elif self.card_type == CardType.BUFF:
             self._apply_buff(user)
-
         elif self.card_type == CardType.DEBUFF:
             if target:
                 self._apply_debuff(target)
-
         elif self.card_type == CardType.ESPECIAL:
             if target:
                 self._apply_special(user, target)
 
-    # ---- Métodos privados para modularizar efeitos ----
     def _apply_attack(self, user, target):
-        if not target or not hasattr(target, "take_damage"):
-            return
-        
-        # Usa o StatusManager para cálculo consistente de dano
-        if hasattr(user, "battle_manager") and hasattr(user.battle_manager, "status_manager"):
-            base_damage = self.value
-            final_damage = user.battle_manager.status_manager.calculate_player_damage(base_damage, self)
-            target.take_damage(final_damage)
-            print(f"{user.name} atacou {target.name} causando {final_damage} de dano!")
-        else:
-            # Fallback: cálculo básico se não houver StatusManager
+        if target and hasattr(target, "take_damage"):
             target.take_damage(self.value)
             print(f"{user.name} atacou {target.name} causando {self.value} de dano!")
 
@@ -154,67 +180,41 @@ class Card:
     def _apply_dodge(self, user):
         if hasattr(user, "add_status"):
             user.add_status("esquiva", duration=1)
-            print(f"{user.name} se preparou para esquivar o próximo ataque!")
+            print(f"{user.name} se preparou para esquivar!")
 
     def _apply_buff(self, user):
         if hasattr(user, "add_status"):
-            # Usa status_effect específico se definido, senão usa "força" como padrão
-            status_name = self.status_effect if self.status_effect else "força"
-            user.add_status(status_name, power=self.value, duration=2, **self.status_kwargs)
-            print(f"{user.name} recebeu um buff de {self.value}!")
+            status_name = self.status_effect if self.status_effect else "buff"
+            user.add_status(status_name, power=self.value, **self.status_kwargs)
+            print(f"{user.name} recebeu buff: {status_name}!")
 
     def _apply_debuff(self, target):
         if hasattr(target, "add_status"):
-            # Usa status_effect específico se definido, senão usa "fraqueza" como padrão
-            status_name = self.status_effect if self.status_effect else "fraqueza"
-            target.add_status(status_name, power=self.value, duration=2, **self.status_kwargs)
-            print(f"{target.name} recebeu um debuff de {self.value}!")
+            status_name = self.status_effect if self.status_effect else "debuff"
+            target.add_status(status_name, power=self.value, **self.status_kwargs)
+            print(f"{target.name} recebeu debuff: {status_name}!")
 
     def _apply_special(self, user, target):
-        if not target or not hasattr(target, "take_damage"):
-            return
-            
-        if hasattr(user, "heal"):
-            # Drena vida: causa dano no alvo e cura o usuário
+        if target and hasattr(target, "take_damage"):
             target.take_damage(self.value)
-            user.heal(self.value // 2)
-            print(f"{user.name} drenou {self.value} de vida de {target.name}!")
+            if hasattr(user, "heal"):
+                user.heal(self.value // 2)
+            print(f"{user.name} usou especial causando {self.value} de dano!")
 
 
 def generate_deck(size=10):
-    """
-    Gera um deck com o número especificado de cartas aleatórias.
-    
-    Args:
-        size (int): Número de cartas no deck (padrão: 10)
-    
-    Returns:
-        list: Lista de objetos Card aleatórios
-    """
     deck = []
-    
-    # Valores possíveis para as cartas (ajuste conforme necessário)
-    possible_values = list(range(1, 11))
-    
-    # Distribuição balanceada de tipos de carta
-    card_types = list(CardType)
-    
+    card_ids = list(CARD_LIBRARY.keys())
     for _ in range(size):
-        # Escolhe tipo, valor e elemento aleatoriamente
-        card_type = random.choice(card_types)
-        value = random.choice(possible_values)
-        element = random.choice(ELEMENTS)
-        
-        # Para cartas de ataque e defesa, valores mais altos
-        if card_type in [CardType.ATAQUE, CardType.DEFESA]:
-            value = random.randint(5, 15)
-        
-        # Para cartas especiais, valores moderados
-        elif card_type == CardType.ESPECIAL:
-            value = random.randint(3, 8)
-        
-        # Cria a carta e adiciona ao deck
-        new_card = Card(card_type, value, element)
-        deck.append(new_card)
-    
+        card_id = random.choice(card_ids)
+        data = CARD_LIBRARY[card_id]
+        deck.append(Card(
+            card_type=data["type"],
+            value=data["value"],
+            element=data["element"],
+            max_uses=data.get("max_uses"),
+            energy_cost=data.get("energy_cost"),
+            status_effect=data.get("status_effect"),
+            status_kwargs=data.get("status_kwargs"),
+        ))
     return deck

@@ -1,5 +1,5 @@
 import random
-from characters.cards import Card
+from characters.cards import Card, CardState
 from config import PLAYER_HEALTH
 
 
@@ -31,8 +31,6 @@ class Player:
     # -------------------------------
     def take_damage(self, amount: int):
         """Recebe dano levando em conta escudo e status."""
-        original_amount = amount
-        
         # Verifica se esquiva o ataque
         if self.has_status("esquiva"):
             if random.random() < 0.5:  # 50% chance de esquivar
@@ -48,7 +46,10 @@ class Player:
 
         # Aplica vulnerabilidade
         if self.has_status("vulnerabilidade") or self.has_status("vulneravel"):
-            multiplier = self.status_effects.get("vulnerabilidade", self.status_effects.get("vulneravel", {})).get("multiplier", 1.5)
+            multiplier = self.status_effects.get(
+                "vulnerabilidade",
+                self.status_effects.get("vulneravel", {})
+            ).get("multiplier", 1.5)
             amount = int(amount * multiplier)
             print(f"O dano foi aumentado para {amount} devido à vulnerabilidade!")
 
@@ -108,9 +109,19 @@ class Player:
             print(f"{self.name} perdeu o status {status}")
 
     def tick_status(self):
-        """Reduz duração dos status a cada turno."""
+        """Reduz duração dos status e aplica efeitos recorrentes por turno."""
         expired = []
         for status, data in list(self.status_effects.items()):
+            # Exemplo de status recorrentes
+            if status == "veneno":
+                dmg = data.get("power", 1)
+                self.take_damage(dmg)
+                print(f"{self.name} sofreu {dmg} de dano por veneno!")
+            if status == "regeneracao":
+                heal = data.get("power", 1)
+                self.heal(heal)
+                print(f"{self.name} regenerou {heal} de vida!")
+
             if "duration" in data:
                 data["duration"] -= 1
                 if data["duration"] <= 0:
@@ -140,8 +151,8 @@ class Player:
         """Descarta carta da mão para a pilha de descarte."""
         if card in self.hand:
             self.hand.remove(card)
-            card.state = "exhausted"
-            self.discard_pile.append(card)
+        card.state = CardState.EXHAUSTED
+        self.discard_pile.append(card)
 
     def discard_hand(self):
         """Descarta todas as cartas da mão."""
@@ -167,9 +178,9 @@ class Player:
         """Seleciona uma carta se possível."""
         if card not in self.hand or not self.can_play_card(card):
             return False
-        if card.state == "selected":
+        if card.state == CardState.SELECTED:
             return False
-        card.state = "selected"
+        card.state = CardState.SELECTED
         self.selected_cards.append(card)
         self.lose_energy(card.energy_cost)
         return True
@@ -177,7 +188,7 @@ class Player:
     def deselect_card(self, card):
         """Deseleciona carta e devolve energia."""
         if card in self.selected_cards:
-            card.state = "idle"
+            card.state = CardState.IDLE
             self.selected_cards.remove(card)
             self.gain_energy(card.energy_cost)
             return True
@@ -194,9 +205,10 @@ class Player:
         return False
 
     def use_selected_cards(self, target=None):
-        """Consome cartas selecionadas."""
-        for card in self.selected_cards:
+        """Consome cartas selecionadas e descarta elas."""
+        for card in list(self.selected_cards):
             card.use(self, target)
+            self.discard_card(card)
         self.selected_cards.clear()
 
     def get_selected_cards(self):
@@ -205,7 +217,7 @@ class Player:
     def reset_selection(self):
         """Reseta seleção de cartas sem consumir energia."""
         for card in self.selected_cards:
-            card.state = "idle"
+            card.state = CardState.IDLE
             self.gain_energy(card.energy_cost)  # Devolve energia
         self.selected_cards.clear()
 

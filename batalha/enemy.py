@@ -1,7 +1,7 @@
 import pygame
 
 class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
-    """Representa um inimigo genérico."""
+    """Representa um inimigo genérico com buffs e debuffs."""
     def __init__(self, name, health, attack_value, image_path, position):
         super().__init__()  # inicializa o Sprite
 
@@ -22,7 +22,7 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
     # Métodos de jogo
     # -------------------------
     def take_damage(self, amount: int):
-        """Recebe dano, considerando o escudo."""
+        """Recebe dano, considerando o escudo e vulnerabilidade."""
         if self.shield > 0:
             absorbed = min(amount, self.shield)
             self.shield -= absorbed
@@ -34,10 +34,16 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
             print(f"O dano foi aumentado para {amount:.0f} devido à vulnerabilidade!")
 
         if amount > 0:
-            self.health = max(0, self.health - amount)
+            self.health = max(0, self.health - int(amount))
             print(f"{self.name} recebeu {amount:.0f} de dano! Vida atual: {self.health}")
 
         return self.health <= 0
+
+    def heal(self, amount: int):
+        """Cura o inimigo, sem passar da vida máxima."""
+        if amount > 0:
+            self.health = min(self.max_health, self.health + amount)
+            print(f"{self.name} recuperou {amount} de vida! Vida atual: {self.health}")
 
     def add_shield(self, amount=1):
         self.shield += amount
@@ -57,8 +63,20 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
             print(f"{self.name} perdeu o status {status}")
 
     def choose_action(self):
-        # Lógica simples de IA para o inimigo
+        """IA básica: decide qual ação tomar."""
+        # Se o inimigo estiver fortalecido, prioriza ataque
+        if self.has_status("fortalecido"):
+            return "power_attack"
         return "attack"
+
+    def calculate_attack(self):
+        """Calcula o valor real do ataque considerando buffs."""
+        base_attack = self.attack_value
+        if self.has_status("fortalecido"):
+            bonus = self.status_effects["fortalecido"].get("power", 1)
+            base_attack += bonus
+            print(f"{self.name} ataca com +{bonus} de poder por fortalecimento!")
+        return base_attack
 
     def is_alive(self):
         return self.health > 0
@@ -70,7 +88,7 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
         """Atualiza o inimigo a cada frame/tick do jogo."""
         expired = []
 
-        # Atualiza efeitos de status
+        # Atualiza duração dos efeitos
         for status, data in list(self.status_effects.items()):
             if "duration" in data:
                 data["duration"] -= 1
@@ -81,11 +99,16 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
         for status in expired:
             self.remove_status(status)
 
-        # Exemplo: aplicar dano de veneno se existir
+        # Aplicação de efeitos contínuos (ordem fixa: veneno -> regen)
         if self.has_status("veneno"):
             dmg = self.status_effects["veneno"].get("power", 1)
             self.take_damage(dmg)
             print(f"{self.name} sofre {dmg} de dano por veneno!")
+
+        if self.has_status("regen"):
+            heal = self.status_effects["regen"].get("power", 1)
+            self.heal(heal)
+            print(f"{self.name} recupera {heal} de vida pela regeneração!")
 
     def __str__(self):
         return (f"{self.name} | HP: {self.health}/{self.max_health} | "
