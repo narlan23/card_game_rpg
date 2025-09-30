@@ -40,7 +40,7 @@ class BattleManager:
         for i, data in enumerate(enemies_data[:len(positions)]):
             enemy = Enemy(
                 data["name"], data["health"], data["attack"],
-                data["image"], positions[i]
+                data["image"], positions[i],data["x_tam"],data["y_tam"]
             )
             self.enemies.add(enemy)
 
@@ -61,6 +61,8 @@ class BattleManager:
     def update(self, dt=16):
         """Atualiza o estado da batalha."""
         self.animation_manager.update()
+
+        self.enemies.update()
         
         if self.state in [BattleState.VICTORY, BattleState.DEFEAT]:
             return

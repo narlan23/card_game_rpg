@@ -2,7 +2,7 @@ import pygame
 
 class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
     """Representa um inimigo genérico com buffs e debuffs."""
-    def __init__(self, name, health, attack_value, image_path, position):
+    def __init__(self, name, health, attack_value, image_path, position, x_tam, y_tam):
         super().__init__()  # inicializa o Sprite
 
         # Atributos lógicos
@@ -13,14 +13,46 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
         self.shield = 0
         self.status_effects = {}  # {"veneno": {"power": 2, "duration": 3}}
 
-        # Atributos gráficos (obrigatórios no Sprite)
-        self.original_image = pygame.image.load(image_path).convert_alpha()
-        self.image = pygame.transform.scale(self.original_image, (150, 150))
+        # ------------------------------------
+        # Atributos de Animação
+        # ------------------------------------
+        self.x_tam = x_tam
+        self.y_tam = y_tam
+        self.animation_speed = 15  # Muda de frame a cada 15 ticks/frames
+        self.current_frame_index = 0
+        self.animation_timer = 0
+        
+        # O argumento 'image_paths' agora deve ser uma lista de caminhos
+        self.frames = self._load_and_scale_frames(image_path, (x_tam, y_tam))
+        
+        # Inicializa a imagem e o rect com o primeiro frame
+        if self.frames:
+            self.image = self.frames[self.current_frame_index]
+        else:
+            # Caso não haja frames, cria uma imagem preta para evitar erro
+            self.image = pygame.Surface((x_tam, y_tam))
+            self.image.fill((0, 0, 0)) # Preto
+            print(f"ATENÇÃO: Nenhum frame carregado para {self.name}!")
+            
         self.rect = self.image.get_rect(center=position)
 
     # -------------------------
     # Métodos de jogo
     # -------------------------
+
+    def _load_and_scale_frames(self, image_paths, size):
+        """Carrega e redimensiona todos os frames da animação."""
+        frames_list = []
+        for path in image_paths:
+            try:
+                original = pygame.image.load(path).convert_alpha()
+                scaled = pygame.transform.scale(original, size)
+                frames_list.append(scaled)
+            except pygame.error as e:
+                print(f"Erro ao carregar imagem {path}: {e}")
+        return frames_list
+
+
     def take_damage(self, amount: int):
         """Recebe dano, considerando o escudo e vulnerabilidade."""
         if self.shield > 0:
@@ -86,6 +118,20 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
     # -------------------------
     def update(self):
         """Atualiza o inimigo a cada frame/tick do jogo."""
+        # 1. Lógica da Animação
+        if self.frames:
+            self.animation_timer += 1
+            if self.animation_timer >= self.animation_speed:
+                # Incrementa o índice do frame e volta para 0 se passar do final
+                self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
+                
+                # Atualiza a imagem do sprite com o novo frame
+                self.image = self.frames[self.current_frame_index]
+                
+                # Reseta o timer
+                self.animation_timer = 0
+
+
         expired = []
 
         # Atualiza duração dos efeitos

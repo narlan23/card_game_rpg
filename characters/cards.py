@@ -39,15 +39,8 @@ CARD_LIBRARY = {
         "type": CardType.BUFF,
         "value": 2,
         "element": "Fogo",
-        "status_effect": "ataque_up",
+        "status_effect": "força",
         "status_kwargs": {"duration": 2, "power": 2},
-    },
-    "buff_defesa": {
-        "type": CardType.BUFF,
-        "value": 3,
-        "element": "Terra",
-        "status_effect": "defesa_up",
-        "status_kwargs": {"duration": 2, "power": 3},
     },
     "buff_regeneracao": {
         "type": CardType.BUFF,
@@ -58,31 +51,24 @@ CARD_LIBRARY = {
     },
 
     # DEBUFFS
-    "debuff_queimadura": {
-        "type": CardType.DEBUFF,
-        "value": 2,
-        "element": "Fogo",
-        "status_effect": "queimadura",
-        "status_kwargs": {"duration": 3, "damage": 2},
-    },
     "debuff_lentidao": {
         "type": CardType.DEBUFF,
-        "value": -1,
+        "value": 1,
         "element": "Terra",
-        "status_effect": "lentidao",
+        "status_effect": "veneno",
         "status_kwargs": {"duration": 2, "power": -1},
     },
     "debuff_confusao": {
         "type": CardType.DEBUFF,
         "value": 0,
         "element": "Ar",
-        "status_effect": "confusao",
+        "status_effect": "vulnerabilidade",
         "status_kwargs": {"duration": 2},
     },
 
     # ESPECIAIS
-    "especial_explosao": {"type": CardType.ESPECIAL, "value": 25, "element": "Fogo"},
-    "especial_tsunami": {"type": CardType.ESPECIAL, "value": 20, "element": "Água"},
+    #"especial_explosao": {"type": CardType.ESPECIAL, "value": 25, "element": "Fogo"},
+    #"especial_tsunami": {"type": CardType.ESPECIAL, "value": 20, "element": "Água"},
 }
 
 

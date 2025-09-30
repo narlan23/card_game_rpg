@@ -11,8 +11,14 @@ from states.base_state import BaseState
 
 # 1. Defina os dados dos inimigos para este encontro
 dados_inimigos_da_torre = [
-    {"name": "Goblin", "health": 3, "attack": 1, "image": "goblin.png"},
-    {"name": "Orc", "health": 5, "attack": 1, "image": "orc.png"},
+    {"name": "Goblin", 
+     "health": 3, 
+     "attack": 1, 
+     "image": ["assets/enemy/agua_frame_1.png","assets/enemy/agua_frame_2.png","assets/enemy/agua_frame_3.png"],
+     "x_tam": 75,
+     "y_tam":150},
+    #{"name": "Orc", "health": 5, "attack": 1, "image": "ar.png","x_tam": 100,"y_tam":150},
+    #{"name": "Orc", "health": 5, "attack": 1, "image": "fire.png","x_tam": 75,"y_tam":120},
 ]
 
 class JogoPrincipal(BaseState):
@@ -38,7 +44,7 @@ class JogoPrincipal(BaseState):
         self.mapa = TiledMap("assets/mapa.tmj")
         map_width = self.mapa.width * self.mapa.tilewidth
         map_height = self.mapa.height * self.mapa.tileheight
-        self.camera = Camera(self.game.screen_width, self.game.screen_height, map_width, map_height)
+        self.camera = Camera(self.game.screen_width // 2, self.game.screen_height // 2, map_width, map_height)
 
         # --- NPCs ---
         self.npcs = self._create_npcs()
