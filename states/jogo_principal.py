@@ -17,22 +17,22 @@ dados_inimigos_da_torre = [
     {"name": "Goblin", 
      "health": 3, 
      "attack": 1, 
-           "image": [
-          #f"{ENEMY_ASSET_PATH}agua_frame_1.png",
-          #f"{ENEMY_ASSET_PATH}agua_frame_2.png",
-          #f"{ENEMY_ASSET_PATH}agua_frame_3.png",
-          f"{ENEMY_ASSET_PATH}agua_frame_4.png",
-          f"{ENEMY_ASSET_PATH}agua_frame_5.png",
-          f"{ENEMY_ASSET_PATH}agua_frame_6.png",
-          f"{ENEMY_ASSET_PATH}agua_frame_7.png",
-          f"{ENEMY_ASSET_PATH}agua_frame_8.png",
-      ],
+     "image": [
+         #f"{ENEMY_ASSET_PATH}agua_frame_1.png",
+         #f"{ENEMY_ASSET_PATH}agua_frame_2.png",
+         #f"{ENEMY_ASSET_PATH}agua_frame_3.png",
+         f"{ENEMY_ASSET_PATH}agua_frame_4.png",
+         f"{ENEMY_ASSET_PATH}agua_frame_5.png",
+         f"{ENEMY_ASSET_PATH}agua_frame_6.png",
+         f"{ENEMY_ASSET_PATH}agua_frame_7.png",
+         f"{ENEMY_ASSET_PATH}agua_frame_8.png",
+     ],
      "x_tam": 75,
      "y_tam":150},
     {"name": "Orc",
       "health": 5, 
       "attack": 1, 
-                 "image": [
+      "image": [
           f"{ENEMY_ASSET_PATH}agua2_frame_1.png",
           f"{ENEMY_ASSET_PATH}agua2_frame_2.png",
           f"{ENEMY_ASSET_PATH}agua2_frame_3.png",
@@ -70,6 +70,16 @@ class JogoPrincipal(BaseState):
         map_width = self.mapa.width * self.mapa.tilewidth
         map_height = self.mapa.height * self.mapa.tileheight
         self.camera = Camera(self.game.screen_width // 2, self.game.screen_height // 2, map_width, map_height)
+
+        # NOVO: Carregar retângulos de colisão da camada "collision" do mapa
+        try:
+            # Garanta que o nome da camada esteja correto (ex: "collision" ou "Colisao")
+            self.colisoes_mapa = self.mapa.get_collision_rects("collision") 
+            print(f"Colisões carregadas: {len(self.colisoes_mapa)} objetos.")
+        except AttributeError:
+            # Isso é crucial para que o jogo não quebre se TiledMap for incompleto
+            print("ERRO: Sua classe TiledMap não possui o método get_collision_rects(layer_name). Colisões desativadas.")
+            self.colisoes_mapa = []
 
         # --- NPCs ---
         self.npcs = self._create_npcs()
@@ -144,6 +154,12 @@ class JogoPrincipal(BaseState):
 
         # Desenha o mapa e os objetos do jogo
         self.mapa.draw(surface, self.camera)
+        
+        # Desenhar colisões para debug (opcional)
+        # for rect in self.colisoes_mapa:
+        #     screen_rect = self.camera.apply(rect)
+        #     pygame.draw.rect(surface, (255, 0, 0, 100), screen_rect, 1) # Vermelho com linha 1
+
         self._draw_npcs(surface)
         self._draw_player(surface)
         
@@ -172,24 +188,73 @@ class JogoPrincipal(BaseState):
             elif event.key == pygame.K_e and self.npc_interacao:
                 # Interage com o NPC próximo
                 self.npc_interacao.interagir(self.dialogo)
+    
+    # NOVO: Método para obter o Rect do jogador
+    def player_rect(self):
+        """Retorna o pygame.Rect do jogador, centralizado em sua posição."""
+        return pygame.Rect(
+            self.player_pos[0] - self.TAMANHO_JOGADOR / 2,
+            self.player_pos[1] - self.TAMANHO_JOGADOR / 2,
+            self.TAMANHO_JOGADOR,
+            self.TAMANHO_JOGADOR
+        )
 
+    # NOVO: Lógica de Colisão
+    def _resolver_colisoes(self, player_rect, delta_x, delta_y):
+        """
+        Verifica colisão do player_rect com os objetos do mapa e resolve o problema,
+        permitindo o deslizamento suave.
+        """
+        for rect_mapa in self.colisoes_mapa:
+            if player_rect.colliderect(rect_mapa):
+                # Colisão no eixo X
+                if delta_x > 0: # Movendo para a direita
+                    player_rect.right = rect_mapa.left
+                elif delta_x < 0: # Movendo para a esquerda
+                    player_rect.left = rect_mapa.right
+                
+                # Colisão no eixo Y
+                if delta_y > 0: # Movendo para baixo
+                    player_rect.bottom = rect_mapa.top
+                elif delta_y < 0: # Movendo para cima
+                    player_rect.top = rect_mapa.bottom
+
+    # MODIFICADO: Agora trata movimento e colisão separadamente
     def _processar_movimento(self):
-        """Calcula e aplica o movimento do jogador."""
+        """Calcula e aplica o movimento do jogador, resolvendo colisões com o mapa."""
         keys = pygame.key.get_pressed()
         dx = (keys[pygame.K_RIGHT] or keys[pygame.K_d]) - (keys[pygame.K_LEFT] or keys[pygame.K_a])
         dy = (keys[pygame.K_DOWN] or keys[pygame.K_s]) - (keys[pygame.K_UP] or keys[pygame.K_w])
 
         # Normaliza o vetor de movimento para evitar velocidade extra na diagonal
         if dx != 0 and dy != 0:
-            dx *= 0.7071
-            dy *= 0.7071
+            norm_factor = 0.7071 # Aprox. 1 / sqrt(2)
+            dx *= norm_factor
+            dy *= norm_factor
 
-        self.player_pos[0] += dx * self.VELOCIDADE_JOGADOR * self.delta_time
-        self.player_pos[1] += dy * self.VELOCIDADE_JOGADOR * self.delta_time
+        # 1. Cria o retângulo do jogador na posição atual
+        player_rect = self.player_rect()
+
+        # 2. Tenta mover no eixo X e verifica colisão
+        delta_x = dx * self.VELOCIDADE_JOGADOR * self.delta_time
+        player_rect.x += delta_x
+        if self.colisoes_mapa: # Só resolve se houver colisões carregadas
+            self._resolver_colisoes(player_rect, delta_x, 0)
+
+        # 3. Tenta mover no eixo Y e verifica colisão
+        delta_y = dy * self.VELOCIDADE_JOGADOR * self.delta_time
+        player_rect.y += delta_y
+        if self.colisoes_mapa: # Só resolve se houver colisões carregadas
+            self._resolver_colisoes(player_rect, 0, delta_y)
+
+        # 4. Atualiza a posição central do jogador com a posição corrigida
+        self.player_pos[0] = player_rect.centerx
+        self.player_pos[1] = player_rect.centery
         
-        # Garante que o jogador não saia dos limites do mapa
+        # Garante que o jogador não saia dos limites do mapa (ainda é útil)
         self._limitar_movimento_mapa()
 
+    # O método _limitar_movimento_mapa permanece o mesmo, mas atua na nova posição.
     def _limitar_movimento_mapa(self):
         """Impede que o jogador se mova para fora da área do mapa."""
         half_size = self.TAMANHO_JOGADOR / 2
@@ -198,19 +263,15 @@ class JogoPrincipal(BaseState):
 
     def _verificar_interacao(self):
         """Verifica se o jogador está próximo o suficiente de um NPC para interagir."""
-        player_rect = pygame.Rect(
-            self.player_pos[0] - self.TAMANHO_JOGADOR / 2,
-            self.player_pos[1] - self.TAMANHO_JOGADOR / 2,
-            self.TAMANHO_JOGADOR,
-            self.TAMANHO_JOGADOR
-        )
+        # Usa o método player_rect() para consistência
+        player_rect = self.player_rect() 
 
         self.npc_interacao = None # Reseta a cada frame
         for npc in self.npcs:
             if player_rect.colliderect(npc.rect):
                 self.npc_interacao = npc
                 break
-    
+        
     def _update_camera(self):
         """Atualiza a posição da câmera para seguir o jogador."""
         self.camera.update(self.player_pos)
