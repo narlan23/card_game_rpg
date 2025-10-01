@@ -9,15 +9,40 @@ from characters.npc import NPC
 from states.batalha import Batalha
 from states.base_state import BaseState
 
+# 1. Defina o caminho base (o atalho)
+ENEMY_ASSET_PATH = "assets/enemy/"
+
 # 1. Defina os dados dos inimigos para este encontro
 dados_inimigos_da_torre = [
     {"name": "Goblin", 
      "health": 3, 
      "attack": 1, 
-     "image": ["assets/enemy/agua_frame_1.png","assets/enemy/agua_frame_2.png","assets/enemy/agua_frame_3.png"],
+           "image": [
+          #f"{ENEMY_ASSET_PATH}agua_frame_1.png",
+          #f"{ENEMY_ASSET_PATH}agua_frame_2.png",
+          #f"{ENEMY_ASSET_PATH}agua_frame_3.png",
+          f"{ENEMY_ASSET_PATH}agua_frame_4.png",
+          f"{ENEMY_ASSET_PATH}agua_frame_5.png",
+          f"{ENEMY_ASSET_PATH}agua_frame_6.png",
+          f"{ENEMY_ASSET_PATH}agua_frame_7.png",
+          f"{ENEMY_ASSET_PATH}agua_frame_8.png",
+      ],
      "x_tam": 75,
      "y_tam":150},
-    #{"name": "Orc", "health": 5, "attack": 1, "image": "ar.png","x_tam": 100,"y_tam":150},
+    {"name": "Orc",
+      "health": 5, 
+      "attack": 1, 
+                 "image": [
+          f"{ENEMY_ASSET_PATH}agua2_frame_1.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_2.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_3.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_4.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_5.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_6.png",
+          f"{ENEMY_ASSET_PATH}agua2_frame_7.png",
+      ],
+      "x_tam": 100,
+      "y_tam":150},
     #{"name": "Orc", "health": 5, "attack": 1, "image": "fire.png","x_tam": 75,"y_tam":120},
 ]
 

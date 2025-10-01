@@ -83,24 +83,25 @@ CARD_BORDER_WIDTH = 3
 # -----------------------------
 def draw_card(screen, card, x, y, selected=False, width=100, height=150):
     """Desenha uma carta na tela com Pygame com visual melhorado."""
-    # Desenha a sombra da carta
+    
+    # 1. Primeiro desenha a sombra
     shadow_rect = pygame.Rect(x + 4, y + 4, width, height)
     pygame.draw.rect(screen, (50, 50, 50), shadow_rect, border_radius=10)
     
+    # 2. DESENHA O FUNDO DA CARTA (substitui o retângulo branco)
+    try:
+        bg_image = pygame.image.load("assets/card.png").convert_alpha()
+        bg_image = pygame.transform.scale(bg_image, (width, height))
+        screen.blit(bg_image, (x, y))
+    except:
+        # Fallback caso a imagem não carregue
+        pygame.draw.rect(screen, WHITE, (x, y, width, height), border_radius=10)
+    
     # Define cores baseadas no elemento
-    card_color = WHITE
     border_color = ELEMENT_COLORS.get(card.element, BLACK)
+
     
-    # Se a carta está selecionada, destaque-a
-    if selected:
-        border_color = GOLD
-        card_color = (240, 240, 240)  # Branco mais brilhante
-    
-    # Desenha o corpo principal da carta
-    card_rect = pygame.Rect(x, y, width, height)
-    pygame.draw.rect(screen, card_color, card_rect, border_radius=10)
-    pygame.draw.rect(screen, border_color, card_rect, CARD_BORDER_WIDTH, border_radius=10)
-    
+    # Resto do código permanece EXATAMENTE igual...
     # Fonte para textos
     font_small = pygame.font.SysFont("arial", 12, bold=True)
     font_medium = pygame.font.SysFont("arial", 14, bold=True)
@@ -112,31 +113,28 @@ def draw_card(screen, card, x, y, selected=False, width=100, height=150):
     
     # Desenha o elemento (círculo colorido)
     pygame.draw.circle(screen, border_color, (x + width//2, y + 35), 12)
-    element_text = font_small.render(card.element[0], True, WHITE)  # Primeira letra do elemento
+    element_text = font_small.render(card.element[0], True, WHITE)
     screen.blit(element_text, (x + width//2 - element_text.get_width()//2, y + 35 - element_text.get_height()//2))
     
     # Desenha o valor da carta (centralizado)
     value_text = font_large.render(f"{card.value}", True, BLACK)
     screen.blit(value_text, (x + width//2 - value_text.get_width()//2, y + 60))
     
-    # CUSTO DE ENERGIA - ÍCONE CIRCULAR CENTRALIZADO NA BASE
+    # CUSTO DE ENERGIA
     energy_circle_radius = 12
     energy_circle_x = x + width // 2
     energy_circle_y = y + height - energy_circle_radius - 8
     
-    # Círculo de fundo para o custo de energia
     pygame.draw.circle(screen, (240, 230, 100), (energy_circle_x, energy_circle_y), energy_circle_radius)
     pygame.draw.circle(screen, (180, 160, 60), (energy_circle_x, energy_circle_y), energy_circle_radius, 2)
     
-    # Texto do custo dentro do círculo
     energy_font = pygame.font.SysFont("arial", 12, bold=True)
     energy_text = energy_font.render(str(card.energy_cost), True, BLACK)
     screen.blit(energy_text, (energy_circle_x - energy_text.get_width()//2, 
                              energy_circle_y - energy_text.get_height()//2))
     
-    # COMBINAÇÃO: BARRA + NÚMERO (acima da carta)
-    if card.max_uses > 1:  # Só mostra se a carta tiver sistema de usos
-        # Barra de progresso
+    # COMBINAÇÃO: BARRA + NÚMERO
+    if card.max_uses > 1:
         bar_width = width - 20
         bar_height = 3
         bar_x = x + 10
@@ -148,7 +146,6 @@ def draw_card(screen, card, x, y, selected=False, width=100, height=150):
             filled_width = int(bar_width * use_ratio)
             pygame.draw.rect(screen, (0, 200, 0), (bar_x, bar_y, filled_width, bar_height))
         
-        # Texto com usos (acima da barra)
         uses_font = pygame.font.SysFont("arial", 10)
         uses_text = uses_font.render(f"{card.uses_left}/{card.max_uses}", True, WHITE)
         text_bg = pygame.Rect(bar_x + bar_width//2 - uses_text.get_width()//2 - 2, 
@@ -158,20 +155,16 @@ def draw_card(screen, card, x, y, selected=False, width=100, height=150):
         pygame.draw.rect(screen, (50, 50, 50), text_bg, border_radius=2)
         screen.blit(uses_text, (bar_x + bar_width//2 - uses_text.get_width()//2, bar_y - uses_text.get_height() - 1))
     
-     # Desenha o ícone do elemento (se disponível)
+    # Desenha o ícone do elemento (se disponível)
     element_icons = get_element_icons()
     if card.element in element_icons:
         icon = element_icons[card.element]
         icon_x = x + width//2 - icon.get_width()//2
         icon_y = y + 35 - icon.get_height()//2
         screen.blit(icon, (icon_x, icon_y))
-    else:
-        # Fallback: desenha um círculo representando o elemento
-        pygame.draw.circle(screen, border_color, (x + width//2, y + 35), 12)
-
-
+    
     # Adiciona decoração nos cantos
-    pygame.draw.circle(screen, border_color, (x + 10, y + 10), 4)
-    pygame.draw.circle(screen, border_color, (x + width - 10, y + 10), 4)
-    pygame.draw.circle(screen, border_color, (x + 10, y + height - 10), 4)
-    pygame.draw.circle(screen, border_color, (x + width - 10, y + height - 10), 4)
+    #pygame.draw.circle(screen, border_color, (x + 10, y + 10), 4)
+    #pygame.draw.circle(screen, border_color, (x + width - 10, y + 10), 4)
+    #pygame.draw.circle(screen, border_color, (x + 10, y + height - 10), 4)
+    #pygame.draw.circle(screen, border_color, (x + width - 10, y + height - 10), 4)

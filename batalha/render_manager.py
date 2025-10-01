@@ -10,7 +10,13 @@ class RenderManager:
 
     def draw(self, surface):
         """Renderiza toda a cena da batalha."""
-        surface.fill((50, 50, 80))
+        try:
+            bg_image = pygame.image.load("assets/battle_background.png").convert()
+            bg_image = pygame.transform.scale(bg_image, (surface.get_width(), surface.get_height()))
+            surface.blit(bg_image, (0, 0))
+        except:
+            # Fallback caso a imagem não exista
+            surface.fill((50, 50, 80))
         self._draw_enemies(surface)
         
         if self.battle_manager.state == BattleState.PLAYER_TURN:
@@ -62,7 +68,7 @@ class RenderManager:
             )
         else:
             text = "Seu turno! Selecione cartas e ataque os inimigos." if self.battle_manager.state == BattleState.PLAYER_TURN else "Turno do inimigo! Aguarde..."
-            self._draw_text_center(surface, text, (255, 255, 255), y=10)
+            #self._draw_text_center(surface, text, (255, 255, 255), y=10)
 
     def _draw_overlay_message(self, text, color):
         overlay = pygame.Surface((self.battle_manager.game.screen_width, self.battle_manager.game.screen_height), pygame.SRCALPHA)
