@@ -3,10 +3,10 @@ class AnimationManager:
         self.battle_manager = battle_manager
         self.animations = []
 
-    def update(self):
+    def update(self, dt):
         """Atualiza todas as animações."""
         for anim in self.animations[:]:
-            anim.update()
+            anim.update(dt)
             if anim.is_finished:
                 self.animations.remove(anim)
 

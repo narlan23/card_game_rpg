@@ -18,7 +18,7 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
         # ------------------------------------
         self.x_tam = x_tam
         self.y_tam = y_tam
-        self.animation_speed = 15  # Muda de frame a cada 15 ticks/frames
+        self.animation_speed = 100  # Muda de frame a cada 15 ticks/frames
         self.current_frame_index = 0
         self.animation_timer = 0
         
@@ -113,30 +113,33 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
     def is_alive(self):
         return self.health > 0
 
-    # -------------------------
-    # Integração com pygame.sprite.Group
-    # -------------------------
-    def update(self):
+    def update(self, dt):
         """Atualiza o inimigo a cada frame/tick do jogo."""
-        # 1. Lógica da Animação
+        # -------------------------
+        # 1. Lógica da Animação (tempo real)
+        # -------------------------
         if self.frames:
-            self.animation_timer += 1
+            # dt vem em milissegundos, convertemos para segundos
+            self.animation_timer += dt
+
+            # A velocidade da animação deve ser em ms/frame (ex: 100 ms por frame)
             if self.animation_timer >= self.animation_speed:
-                # Incrementa o índice do frame e volta para 0 se passar do final
+                # Troca para o próximo frame
                 self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
-                
-                # Atualiza a imagem do sprite com o novo frame
                 self.image = self.frames[self.current_frame_index]
-                
-                # Reseta o timer
-                self.animation_timer = 0
 
+                # Mantém o excedente (garante ritmo constante)
+                self.animation_timer -= self.animation_speed
 
+        # -------------------------
+        # 2. Atualiza efeitos de status
+        # -------------------------
         expired = []
 
-        # Atualiza duração dos efeitos
+        # Atualiza duração (cada tick reduz com base no tempo real)
         for status, data in list(self.status_effects.items()):
             if "duration" in data:
+                # Se quiser duração baseada em segundos → data["duration"] -= dt / 1000
                 data["duration"] -= 1
                 if data["duration"] <= 0:
                     expired.append(status)
@@ -145,7 +148,9 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
         for status in expired:
             self.remove_status(status)
 
-        # Aplicação de efeitos contínuos (ordem fixa: veneno -> regen)
+        # -------------------------
+        # 3. Efeitos contínuos
+        # -------------------------
         if self.has_status("veneno"):
             dmg = self.status_effects["veneno"].get("power", 1)
             self.take_damage(dmg)
@@ -155,6 +160,7 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
             heal = self.status_effects["regen"].get("power", 1)
             self.heal(heal)
             print(f"{self.name} recupera {heal} de vida pela regeneração!")
+
 
     def __str__(self):
         return (f"{self.name} | HP: {self.health}/{self.max_health} | "
