@@ -85,7 +85,7 @@ def draw_player_status(surface, player, x, y):
     # Agora o InputManager pode usar player.rect.collidepoint(pos)
 
 # Configuração do botão End Turn
-END_TURN_BUTTON = pygame.Rect(650, 500, 140, 40)  # posição e tamanho
+END_TURN_BUTTON = pygame.Rect(600, 500, 140, 40)  # posição e tamanho
 
 END_TURN_LAYOUT = {
     "color": (200, 50, 50),
@@ -94,12 +94,64 @@ END_TURN_LAYOUT = {
     "shadow_offset": (4, 4),
 }
 
+# --------------------------------------------------
+# 🆕 Configuração do botão Trocar Mão
+# --------------------------------------------------
+RESHUFFLE_BUTTON = pygame.Rect(600, 450, 140, 40)  # alinhado à esquerda
+
+RESHUFFLE_LAYOUT = {
+    "color": (50, 80, 200),          # azul padrão
+    "hover_color": (70, 100, 230),   # azul mais claro no hover
+    "hover_scale": 1.1,
+    "shadow_offset": (4, 4),
+}
+
+
+def draw_reshuffle_button(surface, font, battle_manager):
+    """Desenha o botão Trocar Mão."""
+    cfg = RESHUFFLE_LAYOUT
+    mouse_pos = pygame.mouse.get_pos()
+    is_hover = RESHUFFLE_BUTTON.collidepoint(mouse_pos)
+
+    # Fonte menor
+    small_font = pygame.font.Font(None, 22)  # menor que a padrão
+
+    # Escala no hover
+    scale = cfg["hover_scale"] if is_hover else 1.0
+    button_rect = pygame.Rect(
+        RESHUFFLE_BUTTON.x,
+        RESHUFFLE_BUTTON.y,
+        int(RESHUFFLE_BUTTON.width * scale),
+        int(RESHUFFLE_BUTTON.height * scale),
+    )
+    button_rect.center = RESHUFFLE_BUTTON.center
+
+    # ---------------- SOMBRA ----------------
+    shadow = button_rect.copy()
+    shadow.x += cfg["shadow_offset"][0]
+    shadow.y += cfg["shadow_offset"][1]
+    pygame.draw.rect(surface, (0, 0, 0, 150), shadow, border_radius=10)
+
+    # ---------------- FUNDO ----------------
+    base_color = cfg["hover_color"] if is_hover else cfg["color"]
+    pygame.draw.rect(surface, base_color, button_rect, border_radius=10)
+
+    # ---------------- TEXTO ----------------
+    label = small_font.render("Trocar Mão", True, (255, 255, 255))
+    surface.blit(
+        label,
+        (button_rect.centerx - label.get_width() // 2,
+         button_rect.centery - label.get_height() // 2),
+    )
 
 def draw_end_turn_button(surface, font, battle_manager):
     """Desenha o botão End Turn, parecido com o botão Confirm"""
     cfg = END_TURN_LAYOUT
     mouse_pos = pygame.mouse.get_pos()
     is_hover = END_TURN_BUTTON.collidepoint(mouse_pos)
+
+    # Fonte menor
+    small_font = pygame.font.Font(None, 22)  # menor que a padrão
 
     # Escala no hover
     scale = cfg["hover_scale"] if is_hover else 1.0
@@ -122,7 +174,7 @@ def draw_end_turn_button(surface, font, battle_manager):
     pygame.draw.rect(surface, base_color, button_rect, border_radius=10)
 
     # ---------------- TEXTO ----------------
-    label = font.render("Encerrar", True, (255, 255, 255))
+    label = small_font.render("Encerrar", True, (255, 255, 255))
     surface.blit(
         label,
         (button_rect.centerx - label.get_width() // 2,

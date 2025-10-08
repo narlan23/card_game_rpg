@@ -23,52 +23,14 @@ class CardType(Enum):
 # -----------------------------
 CARD_LIBRARY = {
     # ATAQUES
-    "ataque_fraco": {"type": CardType.ATAQUE, "value": 6, "element": "Fogo"},
-    "ataque_medio": {"type": CardType.ATAQUE, "value": 12, "element": "Água"},
-    "ataque_forte": {"type": CardType.ATAQUE, "value": 20, "element": "Terra"},
+    "ataque_fraco": {"type": CardType.ATAQUE, "value": 1, "element": "Fogo"},
+    "ataque_medio": {"type": CardType.ATAQUE, "value": 3, "element": "Água"},
+    "ataque_forte": {"type": CardType.ATAQUE, "value": 5, "element": "Terra"},
 
     # DEFESAS
-    "defesa_basica": {"type": CardType.DEFESA, "value": 8, "element": "Terra"},
-    "defesa_forte": {"type": CardType.DEFESA, "value": 14, "element": "Água"},
+    "defesa_basica": {"type": CardType.DEFESA, "value": 2, "element": "Terra"},
+    "defesa_forte": {"type": CardType.DEFESA, "value": 4, "element": "Água"},
 
-    # ESQUIVA
-    "esquiva_basica": {"type": CardType.ESQUIVA, "value": 0, "element": "Ar"},
-
-    # BUFFS
-    "buff_ataque": {
-        "type": CardType.BUFF,
-        "value": 2,
-        "element": "Fogo",
-        "status_effect": "força",
-        "status_kwargs": {"duration": 2, "power": 2},
-    },
-    "buff_regeneracao": {
-        "type": CardType.BUFF,
-        "value": 0,
-        "element": "Água",
-        "status_effect": "regeneracao",
-        "status_kwargs": {"duration": 3, "power": 2},
-    },
-
-    # DEBUFFS
-    "debuff_lentidao": {
-        "type": CardType.DEBUFF,
-        "value": 1,
-        "element": "Terra",
-        "status_effect": "veneno",
-        "status_kwargs": {"duration": 2, "power": -1},
-    },
-    "debuff_confusao": {
-        "type": CardType.DEBUFF,
-        "value": 0,
-        "element": "Ar",
-        "status_effect": "vulnerabilidade",
-        "status_kwargs": {"duration": 2},
-    },
-
-    # ESPECIAIS
-    #"especial_explosao": {"type": CardType.ESPECIAL, "value": 25, "element": "Fogo"},
-    #"especial_tsunami": {"type": CardType.ESPECIAL, "value": 20, "element": "Água"},
 }
 
 
@@ -90,7 +52,7 @@ class Card:
         self.status_effect = status_effect
         self.status_kwargs = status_kwargs or {}
 
-        self.state = CardState.IDLE
+        self.state = None
         self.max_uses = max_uses or self.DEFAULT_MAX_USES
         self.uses_left = self.max_uses
         self.energy_cost = energy_cost if energy_cost is not None else self.DEFAULT_ENERGY_COST
@@ -139,19 +101,28 @@ class Card:
             return
 
         if self.card_type == CardType.ATAQUE:
-            self._apply_attack(user, target)
+            if target:
+                target.take_damage(self.value)
+                print(f"{user.name} atacou {target.name} causando {self.value} de dano!")
         elif self.card_type == CardType.DEFESA:
-            self._apply_defense(user)
+            user.add_shield(self.value)
+            print(f"{user.name} ganhou {self.value} de escudo!")
         elif self.card_type == CardType.ESQUIVA:
-            self._apply_dodge(user)
+            user.add_status("esquiva", duration=1)
+            print(f"{user.name} se preparou para esquivar!")
         elif self.card_type == CardType.BUFF:
-            self._apply_buff(user)
-        elif self.card_type == CardType.DEBUFF:
-            if target:
-                self._apply_debuff(target)
-        elif self.card_type == CardType.ESPECIAL:
-            if target:
-                self._apply_special(user, target)
+            nome = self.status_effect or "fortalecido"
+            user.add_status(nome, power=self.value, **self.status_kwargs)
+            print(f"{user.name} recebeu buff: {nome}!")
+        elif self.card_type == CardType.DEBUFF and target:
+            nome = self.status_effect or "vulneravel"
+            target.add_status(nome, power=self.value, **self.status_kwargs)
+            print(f"{target.name} recebeu debuff: {nome}!")
+        elif self.card_type == CardType.ESPECIAL and target:
+            target.take_damage(self.value)
+            if hasattr(user, "heal"):
+                user.heal(self.value // 2)
+            print(f"{user.name} usou um especial e drenou {self.value // 2} de vida!")
 
     def _apply_attack(self, user, target):
         if target and hasattr(target, "take_damage"):

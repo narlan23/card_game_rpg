@@ -16,8 +16,8 @@ ENEMY_ASSET_PATH = "assets/enemy/"
 dados_inimigos_da_torre = [
     {
         "name": "Goblin",
-        "health": 3,
-        "attack": 1,
+        "health": 30,
+        "attack": 10,
         "image_paths": [  # ✅ Corrigido para image_paths
             f"{ENEMY_ASSET_PATH}agua_frame_6.png",
             f"{ENEMY_ASSET_PATH}agua_frame_7.png",
@@ -29,8 +29,8 @@ dados_inimigos_da_torre = [
     },
     {
         "name": "Orc",
-        "health": 5,
-        "attack": 1,
+        "health": 50,
+        "attack": 10,
         "image_paths": [  # ✅ Corrigido para image_paths
             f"{ENEMY_ASSET_PATH}agua2_frame_1.png",
             f"{ENEMY_ASSET_PATH}agua2_frame_2.png",

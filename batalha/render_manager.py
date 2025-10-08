@@ -1,6 +1,6 @@
 import pygame
 from batalha.battle_state import BattleState
-from batalha.ui import draw_end_turn_button, draw_player_status
+from batalha.ui import draw_end_turn_button, draw_player_status, draw_reshuffle_button
 from characters.hand_renderer import draw_card
 
 
@@ -55,6 +55,7 @@ class RenderManager:
         # Botão "Encerrar Turno" — apenas quando não há animações ativas
         if (self.battle_manager.state == BattleState.PLAYER_TURN and
             not self.battle_manager.animation_manager.has_active_animations()):
+            draw_reshuffle_button(surface, self.battle_manager.font, self.battle_manager)
             draw_end_turn_button(surface, self.battle_manager.font, self.battle_manager)
 
         # Estado da batalha (Vitória/Derrota)

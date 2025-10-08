@@ -218,7 +218,7 @@ class Player:
         """Reseta seleção de cartas sem consumir energia."""
         for card in self.selected_cards:
             card.state = CardState.IDLE
-            self.gain_energy(card.energy_cost)  # Devolve energia
+            #self.gain_energy(card.energy_cost)  # Devolve energia
         self.selected_cards.clear()
 
     def play_card(self, card, target=None):
@@ -230,6 +230,39 @@ class Player:
         if card in self.selected_cards:
             self.selected_cards.remove(card)
         return True
+    
+    def reshuffle_hand(self, energy_cost=3):
+        """
+        Descarte todas as cartas atuais da mão e compre novas do deck.
+        Possui um custo de energia (padrão = 1).
+        Se o deck acabar, o descarte é reembaralhado automaticamente.
+        """
+        # ⚡ Verifica energia suficiente
+        if self.energy < energy_cost:
+            print(f"[AVISO] {self.name} não tem energia suficiente para reembaralhar (precisa de {energy_cost}).")
+            return False
+
+        old_hand_size = len(self.hand)
+        if old_hand_size == 0:
+            print(f"{self.name} não tem cartas na mão para reembaralhar.")
+            return False
+
+        # ⚡ Consome energia
+        self.lose_energy(energy_cost)
+        print(f"{self.name} gastou {energy_cost} de energia para reembaralhar a mão.")
+
+        # 1️⃣ Descarta a mão atual
+        self.discard_hand()
+
+        # 2️⃣ Reembaralha descarte no deck, se necessário
+        if not self.deck:
+            self.reshuffle_discard_into_deck()
+
+        # 3️⃣ Compra o mesmo número de cartas
+        self.draw_card(old_hand_size)
+
+        print(f"{self.name} reembaralhou a mão ({old_hand_size} cartas). Energia restante: {self.energy}/{self.max_energy}")
+        return True
 
     # -------------------------------
     # Controle de turno
@@ -239,7 +272,7 @@ class Player:
         self.tick_status()
         self.reset_selection()
         self.reset_energy()
-        self.draw_card(draw_amount)
+        #self.draw_card(draw_amount)
 
     def end_turn(self):
         """Descarta a mão no fim do turno."""

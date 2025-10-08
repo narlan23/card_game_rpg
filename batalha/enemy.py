@@ -20,20 +20,13 @@ class Enemy(pygame.sprite.Sprite):
         # -------------------------
         # Animação
         # -------------------------
-        self.x_tam = x_tam
-        self.y_tam = y_tam
+        # animação
+        self.x_tam, self.y_tam = x_tam, y_tam
         self.animation_speed = animation_speed
+        self.frames = self._load_and_scale_frames(image_paths, (x_tam, y_tam))
         self.current_frame_index = 0
         self.animation_timer = 0
-        self.frames = self._load_and_scale_frames(image_paths, (x_tam, y_tam))
-
-        if self.frames:
-            self.image = self.frames[self.current_frame_index]
-        else:
-            self.image = pygame.Surface((x_tam, y_tam))
-            self.image.fill((0, 0, 0))
-            print(f"[WARN] Nenhum frame carregado para {self.name}!")
-
+        self.image = self.frames[0] if self.frames else pygame.Surface((x_tam, y_tam))
         self.rect = self.image.get_rect(center=position)
 
     # ================================================================

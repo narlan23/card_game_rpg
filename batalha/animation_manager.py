@@ -1,7 +1,7 @@
 import pygame
 
 class AnimationManager:
-    """Gerencia todas as animações da batalha (dano, status, efeitos visuais etc.)."""
+    """Gerencia todas as animações da batalha (dano, cura, status, etc.)."""
 
     def __init__(self, battle_manager):
         self.battle_manager = battle_manager
@@ -9,7 +9,6 @@ class AnimationManager:
 
     def update(self, dt: float):
         """Atualiza todas as animações ativas."""
-        # Copiamos a lista para evitar erro de modificação durante iteração
         for anim in self.animations[:]:
             anim.update(dt)
             if anim.is_finished:
@@ -28,12 +27,24 @@ class AnimationManager:
         self.animations.append(animation)
 
     def spawn_status_animation(self, target, status_name):
-        """Cria uma animação de status (texto flutuante)."""
+        """Cria uma animação de status (texto flutuante dourado)."""
         from .animation import TextAnimation
         animation = TextAnimation(
             target=target,
             text=status_name.upper(),
-            color=(255, 215, 0),
+            color=(255, 215, 0),  # dourado
+            screen_width=self.battle_manager.game.screen_width,
+            hand_y=self.battle_manager.hand_renderer.hand_y
+        )
+        self.animations.append(animation)
+
+    def spawn_heal_animation(self, target, heal_amount):
+        """Cria uma animação de cura (texto verde flutuante)."""
+        from .animation import TextAnimation
+        animation = TextAnimation(
+            target=target,
+            text=f"+{heal_amount}",
+            color=(0, 255, 0),  # verde = cura
             screen_width=self.battle_manager.game.screen_width,
             hand_y=self.battle_manager.hand_renderer.hand_y
         )

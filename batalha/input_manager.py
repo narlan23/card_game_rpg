@@ -1,7 +1,7 @@
 import pygame
 from batalha.battle_state import BattleState
 from characters.cards import CardType
-from batalha.ui import END_TURN_BUTTON
+from batalha.ui import END_TURN_BUTTON, RESHUFFLE_BUTTON
 
 
 class InputManager:
@@ -9,9 +9,6 @@ class InputManager:
 
     def __init__(self, battle_manager):
         self.battle_manager = battle_manager
-        self.last_card_clicked = None
-        self.last_click_time = 0
-        self.double_click_threshold = 300  # tempo em ms
         self._debug_enabled = True  # alternador global de logs
 
     # ---------------------------------------------------------
@@ -40,6 +37,7 @@ class InputManager:
         # Ordem de prioridade dos cliques
         click_handlers = [
             self._handle_end_turn_click,
+            self._handle_reshuffle_click,
             self._handle_card_click,
             self._handle_enemy_click,
             self._handle_player_click
@@ -73,6 +71,16 @@ class InputManager:
             self.battle_manager.turn_manager.end_player_turn()
             return True
         return False
+    
+    def _handle_reshuffle_click(self, pos):
+        """Botão que troca todas as cartas da mão do jogador."""
+        if RESHUFFLE_BUTTON.collidepoint(pos):
+            player = self.battle_manager.game.player
+            self._debug_print("Botão 'Trocar Mão' clicado — reembaralhando cartas.")
+            player.reshuffle_hand()
+            self.battle_manager.hand_renderer.update_card_positions()
+            return True
+        return False
 
     # ---------------------------------------------------------
     # 🃏 Clique em carta
@@ -101,53 +109,15 @@ class InputManager:
         self._log_card_details(card_index, card)
         player.select_card_by_index(card_index)
 
-        card_handlers = {
-            CardType.ATAQUE.value: self._handle_attack_card,
-            CardType.DEFESA.value: self._handle_defense_card_click,
-            CardType.BUFF.value: self._handle_buff_card,
-            CardType.DEBUFF.value: self._handle_buff_card
-        }
+        if card.card_type == CardType.ATAQUE.value:
+            self._debug_print("Carta de ATAQUE selecionada. Aguardando clique em inimigo.")
+        elif card.card_type == CardType.DEFESA.value:
+            self._debug_print("Carta de DEFESA selecionada. Aguardando clique no jogador.")
+        elif card.card_type in (CardType.BUFF.value, CardType.DEBUFF.value):
+            self._debug_print("Carta de BUFF/DEBUFF selecionada. Aguardando clique no alvo.")
+        else:
+            self._debug_print(f"Tipo de carta desconhecido: {card.card_type}")
 
-        handler = card_handlers.get(card.card_type)
-        if handler:
-            return handler(card_index)
-
-        self._debug_print(f"Tipo de carta desconhecido: {card.card_type}")
-        return False
-
-    # ---------------------------------------------------------
-    # ⚔️ Cartas de ataque
-    # ---------------------------------------------------------
-    def _handle_attack_card(self, card_index):
-        self._debug_print("Carta de ATAQUE selecionada. Aguardando clique em inimigo.")
-        return True
-
-    # ---------------------------------------------------------
-    # 🛡️ Cartas de defesa
-    # ---------------------------------------------------------
-    def _handle_defense_card_click(self, card_index):
-        """Verifica se houve duplo clique para ativar carta de defesa."""
-        now = pygame.time.get_ticks()
-        if (
-            self.last_card_clicked == card_index and
-            (now - self.last_click_time) < self.double_click_threshold
-        ):
-            card = self.battle_manager.game.player.hand[card_index]
-            self._debug_print("Duplo clique em carta de DEFESA. Aplicando efeito.")
-            self._resolve_defense_card(card)
-            return True
-
-        # Marca o primeiro clique
-        self.last_card_clicked = card_index
-        self.last_click_time = now
-        self._debug_print("Primeiro clique em carta de DEFESA.")
-        return True
-
-    # ---------------------------------------------------------
-    # ✨ Buff / Debuff
-    # ---------------------------------------------------------
-    def _handle_buff_card(self, card_index):
-        self._debug_print("Carta BUFF/DEBUFF selecionada. Aguardando clique em alvo.")
         return True
 
     # ---------------------------------------------------------
@@ -164,6 +134,7 @@ class InputManager:
         return False
 
     def _process_enemy_click(self, enemy):
+        """Processa o clique em um inimigo."""
         self._debug_print(f"Inimigo {getattr(enemy, 'name', '???')} clicado. HP={getattr(enemy, 'health', '?')}")
         if getattr(enemy, "health", 0) <= 0:
             self._debug_print("Inimigo morto. Cancelando ataque.")
@@ -236,7 +207,6 @@ class InputManager:
     def _apply_attack_effect(self, card, target):
         if target == self.battle_manager.game.player:
             return
-
         base_damage = card.value
         final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, card)
         self._debug_print(f"Dano final calculado: {final_damage}")
@@ -245,7 +215,9 @@ class InputManager:
 
     def _apply_defense_effect(self, card, target):
         if target == self.battle_manager.game.player:
-            self._resolve_defense_card(card)
+            player = self.battle_manager.game.player
+            player.shield += card.value
+            self._debug_print(f"DEFESA aplicada. Novo escudo: {player.shield}")
 
     def _apply_status_effect(self, card, target):
         if hasattr(card, "status_effect") and card.status_effect:
@@ -254,12 +226,6 @@ class InputManager:
             self.battle_manager.status_manager.apply_status_to_target(
                 target, card.status_effect, **getattr(card, "status_kwargs", {})
             )
-
-    def _resolve_defense_card(self, card):
-        """Aplica o efeito de defesa diretamente no jogador."""
-        player = self.battle_manager.game.player
-        player.shield += card.value
-        self._debug_print(f"DEFESA aplicada. Novo escudo: {player.shield}")
 
     # ---------------------------------------------------------
     # 🧹 Utilidades auxiliares
