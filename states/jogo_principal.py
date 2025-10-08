@@ -23,6 +23,7 @@ dados_inimigos_da_torre = [
             f"{ENEMY_ASSET_PATH}agua_frame_7.png",
             f"{ENEMY_ASSET_PATH}agua_frame_8.png",
         ],
+        "animation_speed": 150,
         "x_tam": 75,
         "y_tam": 150
     },
@@ -35,6 +36,7 @@ dados_inimigos_da_torre = [
             f"{ENEMY_ASSET_PATH}agua2_frame_2.png",
             f"{ENEMY_ASSET_PATH}agua2_frame_3.png",
         ],
+        "animation_speed": 200,
         "x_tam": 100,
         "y_tam": 150
     },

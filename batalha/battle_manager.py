@@ -48,6 +48,7 @@ class BattleManager:
                 attack_value=data.get("attack", 2),
                 image_paths=data.get("image_paths", []),
                 position=positions[i],
+                animation_speed=data.get("animation_speed", 250),
                 x_tam=data.get("x_tam", 64),
                 y_tam=data.get("y_tam", 64)
             )
