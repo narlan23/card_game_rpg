@@ -106,6 +106,7 @@ class Game:
         while self.running:
             events = pygame.event.get()
             active_state = self.get_active_state()
+            
 
             if active_state:
                 active_state.handle_events(events)

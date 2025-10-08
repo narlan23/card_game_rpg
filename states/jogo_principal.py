@@ -321,10 +321,6 @@ class JogoPrincipal(BaseState):
             if player_rect.colliderect(npc.rect):
                 self.npc_interacao = npc
                 break
-        
-    def _update_camera(self):
-        """Atualiza a posição da câmera para seguir o jogador."""
-        self.camera.update(self.player_pos)
 
     # ========================
     # Métodos de Renderização (AGORA DESENHAM NA CANVAS)
