@@ -42,9 +42,9 @@ class Batalha(BaseState):
                 self.battle_manager.handle_click(event.pos)
         pass
 
-    def update(self):
+    def update(self,dt):
         """Delega a atualização da lógica para o battle_manager."""
-        self.battle_manager.update()
+        self.battle_manager.update(dt)
 
     def draw(self, surface):
         """Delega a renderização da cena de batalha para o battle_manager."""

@@ -104,19 +104,20 @@ class Game:
     def game_loop(self):
         """O loop principal do jogo."""
         while self.running:
+            dt = self.CLOCK.tick(60) / 1000  # Tempo decorrido em segundos (ex: 0.016 para 60 FPS)
             events = pygame.event.get()
             active_state = self.get_active_state()
             
 
             if active_state:
                 active_state.handle_events(events)
-                active_state.update()
+                active_state.update(dt)
                 active_state.draw(self.SCREEN)
             else:
                 self.running = False
 
             pygame.display.flip()
-            self.CLOCK.tick(60)
+            #self.CLOCK.tick(60)
 
         pygame.quit()
         sys.exit()

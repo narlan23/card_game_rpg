@@ -72,7 +72,7 @@ class BattleManager:
         """Delega o clique para o InputManager."""
         return self.input_manager.handle_click(pos)
 
-    def update(self, dt=12):
+    def update(self, dt):
         """Atualiza animações, inimigos e turnos."""
         self.animation_manager.update(dt)
         self.enemies.update(dt)

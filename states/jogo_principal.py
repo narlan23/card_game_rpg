@@ -163,15 +163,15 @@ class JogoPrincipal(BaseState):
             # Aplica o novo zoom (a propriedade setter faz todo o recálculo)
             self.camera.zoom_level = novo_zoom
 
-    def update(self):
+    def update(self, dt):
         """Atualiza a lógica do jogo a cada frame."""
-        # Calcula o delta_time para movimento consistente
-        self.delta_time = self.clock.tick(60) / 1000.0
+        # Usa o delta_time passado pelo loop principal
+        self.delta_time = dt
 
         if not self.dialogo.ativo:
             self._processar_movimento()
             self._verificar_interacao()
-        
+
         self._update_camera()
 
 # JogoPrincipal.draw(self, surface)

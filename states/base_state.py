@@ -38,7 +38,7 @@ class BaseState:
                     # mas cada estado filho pode sobrescrever isso.
                     self.game.pop_state()
 
-    def update(self):
+    def update(self, dt):
         """
         Atualiza a lógica interna do estado.
         Este método é chamado a cada frame e é onde a lógica do jogo,
