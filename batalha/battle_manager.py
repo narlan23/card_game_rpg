@@ -46,7 +46,7 @@ class BattleManager:
                 name=data.get("name", "Inimigo"),
                 health=data.get("health", 10),
                 attack_value=data.get("attack", 2),
-                image_path=data.get("image", "assets/enemy.png"),
+                image_paths=data.get("image_paths", []),
                 position=positions[i],
                 x_tam=data.get("x_tam", 64),
                 y_tam=data.get("y_tam", 64)

@@ -1,60 +1,63 @@
 import pygame
 
-class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
-    """Representa um inimigo genérico com buffs e debuffs."""
-    def __init__(self, name, health, attack_value, image_path, position, x_tam, y_tam):
-        super().__init__()  # inicializa o Sprite
+class Enemy(pygame.sprite.Sprite):
+    """Representa um inimigo genérico com animações, buffs e debuffs."""
 
-        # Atributos lógicos
+    def __init__(self, name, health, attack_value, image_paths, position, x_tam, y_tam):
+        super().__init__()
+
+        # -------------------------
+        # Atributos de combate
+        # -------------------------
         self.name = name
         self.max_health = health
         self.health = health
         self.attack_value = attack_value
         self.shield = 0
-        self.status_effects = {}  # {"veneno": {"power": 2, "duration": 3}}
+        self.status_effects = {}  # Exemplo: {"veneno": {"power": 2, "duration": 3}}
 
-        # ------------------------------------
-        # Atributos de Animação
-        # ------------------------------------
+        # -------------------------
+        # Atributos visuais / animação
+        # -------------------------
         self.x_tam = x_tam
         self.y_tam = y_tam
-        self.animation_speed = 100  # Muda de frame a cada 15 ticks/frames
+        self.animation_speed = 100  # ms por frame
         self.current_frame_index = 0
         self.animation_timer = 0
-        
-        # O argumento 'image_paths' agora deve ser uma lista de caminhos
-        self.frames = self._load_and_scale_frames(image_path, (x_tam, y_tam))
-        
-        # Inicializa a imagem e o rect com o primeiro frame
+
+        # Carrega frames
+        self.frames = self._load_and_scale_frames(image_paths, (x_tam, y_tam))
         if self.frames:
             self.image = self.frames[self.current_frame_index]
         else:
-            # Caso não haja frames, cria uma imagem preta para evitar erro
             self.image = pygame.Surface((x_tam, y_tam))
-            self.image.fill((0, 0, 0)) # Preto
-            print(f"ATENÇÃO: Nenhum frame carregado para {self.name}!")
-            
+            self.image.fill((0, 0, 0))
+            print(f"[WARN] Nenhum frame carregado para {self.name}!")
+
         self.rect = self.image.get_rect(center=position)
 
-    # -------------------------
-    # Métodos de jogo
-    # -------------------------
+    # ================================================================
+    # 🔹 MÉTODOS INTERNOS
+    # ================================================================
 
     def _load_and_scale_frames(self, image_paths, size):
         """Carrega e redimensiona todos os frames da animação."""
         frames_list = []
         for path in image_paths:
             try:
-                original = pygame.image.load(path).convert_alpha()
-                scaled = pygame.transform.scale(original, size)
-                frames_list.append(scaled)
+                img = pygame.image.load(path).convert_alpha()
+                img = pygame.transform.scale(img, size)
+                frames_list.append(img)
             except pygame.error as e:
-                print(f"Erro ao carregar imagem {path}: {e}")
+                print(f"[ERRO] Falha ao carregar {path}: {e}")
         return frames_list
 
+    # ================================================================
+    # 🔹 COMBATE
+    # ================================================================
 
     def take_damage(self, amount: int):
-        """Recebe dano, considerando o escudo e vulnerabilidade."""
+        """Recebe dano, considerando escudo e vulnerabilidade."""
         if self.shield > 0:
             absorbed = min(amount, self.shield)
             self.shield -= absorbed
@@ -63,26 +66,31 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
 
         if self.has_status("vulneravel"):
             amount *= 1.5
-            print(f"O dano foi aumentado para {amount:.0f} devido à vulnerabilidade!")
+            print(f"O dano foi aumentado para {amount:.0f} (vulnerável)!")
 
         if amount > 0:
             self.health = max(0, self.health - int(amount))
-            print(f"{self.name} recebeu {amount:.0f} de dano! Vida atual: {self.health}")
+            print(f"{self.name} recebeu {amount:.0f} de dano! Vida: {self.health}/{self.max_health}")
 
         return self.health <= 0
 
     def heal(self, amount: int):
-        """Cura o inimigo, sem passar da vida máxima."""
+        """Cura o inimigo, sem ultrapassar o máximo."""
         if amount > 0:
-            self.health = min(self.max_health, self.health + amount)
-            print(f"{self.name} recuperou {amount} de vida! Vida atual: {self.health}")
+            self.health = min(self.max_health, self.health + int(amount))
+            print(f"{self.name} recuperou {amount} de vida! ({self.health}/{self.max_health})")
 
     def add_shield(self, amount=1):
+        """Adiciona escudo temporário."""
         self.shield += amount
-        print(f"{self.name} ganhou {amount} de escudo!")
+        print(f"{self.name} ganhou {amount} de escudo (total: {self.shield})")
+
+    # ================================================================
+    # 🔹 STATUS
+    # ================================================================
 
     def add_status(self, status: str, **kwargs):
-        """Adiciona um status com atributos extras (ex: power, duration)."""
+        """Adiciona ou renova um status com parâmetros (ex: power, duration)."""
         self.status_effects[status] = kwargs
         print(f"{self.name} ganhou status: {status} {kwargs}")
 
@@ -94,73 +102,71 @@ class Enemy(pygame.sprite.Sprite):  # Agora é um Sprite
             del self.status_effects[status]
             print(f"{self.name} perdeu o status {status}")
 
+    # ================================================================
+    # 🔹 IA E AÇÕES
+    # ================================================================
+
     def choose_action(self):
-        """IA básica: decide qual ação tomar."""
-        # Se o inimigo estiver fortalecido, prioriza ataque
+        """IA simples para decidir ações."""
         if self.has_status("fortalecido"):
             return "power_attack"
         return "attack"
 
     def calculate_attack(self):
-        """Calcula o valor real do ataque considerando buffs."""
-        base_attack = self.attack_value
+        """Calcula o ataque considerando buffs."""
+        base = self.attack_value
         if self.has_status("fortalecido"):
             bonus = self.status_effects["fortalecido"].get("power", 1)
-            base_attack += bonus
-            print(f"{self.name} ataca com +{bonus} de poder por fortalecimento!")
-        return base_attack
+            base += bonus
+            print(f"{self.name} ataca com +{bonus} de bônus (fortalecido).")
+        return base
 
     def is_alive(self):
         return self.health > 0
 
+    # ================================================================
+    # 🔹 ATUALIZAÇÃO
+    # ================================================================
+
     def update(self, dt):
-        """Atualiza o inimigo a cada frame/tick do jogo."""
+        """Atualiza a animação e efeitos com base no tempo (dt em segundos)."""
         # -------------------------
-        # 1. Lógica da Animação (tempo real)
+        # 1. Atualiza animação
         # -------------------------
         if self.frames:
-            # dt vem em milissegundos, convertemos para segundos
-            self.animation_timer += dt
-
-            # A velocidade da animação deve ser em ms/frame (ex: 100 ms por frame)
+            # converte dt (s) para ms
+            self.animation_timer += dt * 1000
             if self.animation_timer >= self.animation_speed:
-                # Troca para o próximo frame
+                self.animation_timer -= self.animation_speed
                 self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
                 self.image = self.frames[self.current_frame_index]
 
-                # Mantém o excedente (garante ritmo constante)
-                self.animation_timer -= self.animation_speed
-
         # -------------------------
-        # 2. Atualiza efeitos de status
+        # 2. Atualiza duração dos status
         # -------------------------
         expired = []
-
-        # Atualiza duração (cada tick reduz com base no tempo real)
         for status, data in list(self.status_effects.items()):
             if "duration" in data:
-                # Se quiser duração baseada em segundos → data["duration"] -= dt / 1000
-                data["duration"] -= 1
+                # duração baseada em segundos
+                data["duration"] -= dt
                 if data["duration"] <= 0:
                     expired.append(status)
 
-        # Remove efeitos expirados
         for status in expired:
             self.remove_status(status)
 
         # -------------------------
-        # 3. Efeitos contínuos
+        # 3. Aplica efeitos contínuos
         # -------------------------
         if self.has_status("veneno"):
             dmg = self.status_effects["veneno"].get("power", 1)
-            self.take_damage(dmg)
-            print(f"{self.name} sofre {dmg} de dano por veneno!")
+            self.take_damage(dmg * dt)  # dano contínuo baseado em tempo real
+            print(f"{self.name} sofre {dmg} dano/s por veneno.")
 
         if self.has_status("regen"):
             heal = self.status_effects["regen"].get("power", 1)
-            self.heal(heal)
-            print(f"{self.name} recupera {heal} de vida pela regeneração!")
-
+            self.heal(heal * dt)
+            print(f"{self.name} regenera {heal} HP/s.")
 
     def __str__(self):
         return (f"{self.name} | HP: {self.health}/{self.max_health} | "
