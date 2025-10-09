@@ -74,97 +74,137 @@ class HandRenderer:
             )
 
 
-
-# Largura da borda da carta
+# -------------------------------------------
+# ⚙️ Configurações visuais da carta
+# -------------------------------------------
 CARD_BORDER_WIDTH = 3
 
-# -----------------------------
-# Função draw_card
-# -----------------------------
 def draw_card(screen, card, x, y, selected=False, width=100, height=150):
-    """Desenha uma carta na tela com Pygame com visual melhorado."""
-    
-    # 1. Primeiro desenha a sombra
+    """Desenha uma carta com imagem, efeitos e destaque suave quando selecionada."""
+    border_color = ELEMENT_COLORS.get(card.element, BLACK)
+
+    # 1️⃣ Sombra
     shadow_rect = pygame.Rect(x + 4, y + 4, width, height)
     pygame.draw.rect(screen, (50, 50, 50), shadow_rect, border_radius=10)
-    
-    # 2. DESENHA O FUNDO DA CARTA (substitui o retângulo branco)
+
+    # 2️⃣ Fundo da carta
     try:
         bg_image = pygame.image.load("assets/card.png").convert_alpha()
         bg_image = pygame.transform.scale(bg_image, (width, height))
         screen.blit(bg_image, (x, y))
     except:
-        # Fallback caso a imagem não carregue
         pygame.draw.rect(screen, WHITE, (x, y, width, height), border_radius=10)
-    
-    # Define cores baseadas no elemento
-    border_color = ELEMENT_COLORS.get(card.element, BLACK)
 
-    
-    # Resto do código permanece EXATAMENTE igual...
-    # Fonte para textos
+    # -----------------------------------------
+    # 3️⃣ Borda com fade suave (apenas se selecionada)
+    # -----------------------------------------
+    if not hasattr(card, "_border_alpha"):
+        card._border_alpha = 0  # inicializa o fade da borda
+
+    target_alpha = 120 if selected else 0
+    # Transição suave de opacidade
+    card._border_alpha += (target_alpha - card._border_alpha) * 0.2
+
+    if card._border_alpha > 1:  # só desenha se visível
+        border_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        transparent_gold = (255, 215, 0, int(card._border_alpha))
+        pygame.draw.rect(
+            border_surface,
+            transparent_gold,
+            border_surface.get_rect(),
+            CARD_BORDER_WIDTH + 1,
+            border_radius=10,
+        )
+        screen.blit(border_surface, (x, y))
+
+    # -----------------------------------------
+    # 4️⃣ Fontes e textos
+    # -----------------------------------------
     font_small = pygame.font.SysFont("arial", 12, bold=True)
     font_medium = pygame.font.SysFont("arial", 14, bold=True)
     font_large = pygame.font.SysFont("arial", 16, bold=True)
-    
-    # Desenha o tipo da carta (no topo)
+
+    # 5️⃣ Tipo da carta
     type_text = font_medium.render(card.card_type.value, True, BLACK)
-    screen.blit(type_text, (x + width//2 - type_text.get_width()//2, y + 10))
-    
-    # Desenha o elemento (círculo colorido)
-    pygame.draw.circle(screen, border_color, (x + width//2, y + 35), 12)
-    element_text = font_small.render(card.element[0], True, WHITE)
-    screen.blit(element_text, (x + width//2 - element_text.get_width()//2, y + 35 - element_text.get_height()//2))
-    
-    # Desenha o valor da carta (centralizado)
+    screen.blit(type_text, (x + width // 2 - type_text.get_width() // 2, y + 10))
+
+    # -----------------------------------------
+    # 6️⃣ Ícone do elemento
+    # -----------------------------------------
+    ELEMENT_ICON_SIZE = 48  # 🧭 tamanho do ícone do elemento
+    element_icons = get_element_icons()
+
+    if card.element in element_icons:
+        icon = element_icons[card.element]
+        icon = pygame.transform.scale(icon, (ELEMENT_ICON_SIZE, ELEMENT_ICON_SIZE))
+        icon_x = x + width // 2 - icon.get_width() // 2
+        icon_y = y + 35 - icon.get_height() // 2
+        screen.blit(icon, (icon_x, icon_y))
+    else:
+        pygame.draw.circle(screen, border_color, (x + width // 2, y + 35), ELEMENT_ICON_SIZE // 2)
+        element_text = font_small.render(card.element[0], True, WHITE)
+        screen.blit(
+            element_text,
+            (x + width // 2 - element_text.get_width() // 2, y + 35 - element_text.get_height() // 2),
+        )
+
+    # 7️⃣ Valor central
     value_text = font_large.render(f"{card.value}", True, BLACK)
-    screen.blit(value_text, (x + width//2 - value_text.get_width()//2, y + 60))
-    
-    # CUSTO DE ENERGIA
+    screen.blit(value_text, (x + width // 2 - value_text.get_width() // 2, y + 60))
+
+    # -----------------------------------------
+    # 8️⃣ Indicador de custo de energia
+    # -----------------------------------------
+    # 🔋 Localização: parte inferior central da carta
+    # Círculo amarelo com número do custo dentro
     energy_circle_radius = 12
     energy_circle_x = x + width // 2
     energy_circle_y = y + height - energy_circle_radius - 8
-    
+
     pygame.draw.circle(screen, (240, 230, 100), (energy_circle_x, energy_circle_y), energy_circle_radius)
     pygame.draw.circle(screen, (180, 160, 60), (energy_circle_x, energy_circle_y), energy_circle_radius, 2)
-    
+
     energy_font = pygame.font.SysFont("arial", 12, bold=True)
     energy_text = energy_font.render(str(card.energy_cost), True, BLACK)
-    screen.blit(energy_text, (energy_circle_x - energy_text.get_width()//2, 
-                             energy_circle_y - energy_text.get_height()//2))
-    
-    # COMBINAÇÃO: BARRA + NÚMERO
+    screen.blit(
+        energy_text,
+        (
+            energy_circle_x - energy_text.get_width() // 2,
+            energy_circle_y - energy_text.get_height() // 2,
+        ),
+    )
+
+    # -----------------------------------------
+    # 9️⃣ Barra e contador de usos (no topo)
+    # -----------------------------------------
     if card.max_uses > 1:
         bar_width = width - 20
         bar_height = 3
         bar_x = x + 10
         bar_y = y - 10
-        
+
         pygame.draw.rect(screen, (150, 150, 150), (bar_x, bar_y, bar_width, bar_height))
         if card.uses_left > 0:
             use_ratio = card.uses_left / card.max_uses
             filled_width = int(bar_width * use_ratio)
             pygame.draw.rect(screen, (0, 200, 0), (bar_x, bar_y, filled_width, bar_height))
-        
+
         uses_font = pygame.font.SysFont("arial", 10)
         uses_text = uses_font.render(f"{card.uses_left}/{card.max_uses}", True, WHITE)
-        text_bg = pygame.Rect(bar_x + bar_width//2 - uses_text.get_width()//2 - 2, 
-                             bar_y - uses_text.get_height() - 2,
-                             uses_text.get_width() + 4, 
-                             uses_text.get_height() + 2)
+        text_bg = pygame.Rect(
+            bar_x + bar_width // 2 - uses_text.get_width() // 2 - 2,
+            bar_y - uses_text.get_height() - 2,
+            uses_text.get_width() + 4,
+            uses_text.get_height() + 2,
+        )
         pygame.draw.rect(screen, (50, 50, 50), text_bg, border_radius=2)
-        screen.blit(uses_text, (bar_x + bar_width//2 - uses_text.get_width()//2, bar_y - uses_text.get_height() - 1))
-    
-    # Desenha o ícone do elemento (se disponível)
-    element_icons = get_element_icons()
-    if card.element in element_icons:
-        icon = element_icons[card.element]
-        icon_x = x + width//2 - icon.get_width()//2
-        icon_y = y + 35 - icon.get_height()//2
-        screen.blit(icon, (icon_x, icon_y))
-    
-    # Adiciona decoração nos cantos
-    #pygame.draw.circle(screen, border_color, (x + 10, y + 10), 4)
-    #pygame.draw.circle(screen, border_color, (x + width - 10, y + 10), 4)
-    #pygame.draw.circle(screen, border_color, (x + 10, y + height - 10), 4)
-    #pygame.draw.circle(screen, border_color, (x + width - 10, y + height - 10), 4)
+        screen.blit(
+            uses_text,
+            (bar_x + bar_width // 2 - uses_text.get_width() // 2, bar_y - uses_text.get_height() - 1),
+        )
+
+    # -----------------------------------------
+    # 🔹 10️⃣ Decoração nos cantos (cosmética)
+    # -----------------------------------------
+    for (dx, dy) in [(10, 10), (width - 10, 10), (10, height - 10), (width - 10, height - 10)]:
+        pygame.draw.circle(screen, border_color, (x + dx, y + dy), 4)

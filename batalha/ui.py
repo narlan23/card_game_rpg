@@ -1,5 +1,5 @@
 import pygame
-from config import WHITE, FONT
+from config import WHITE, FONT,FONT_SMALL
 
 def draw_player_status(surface, player, x, y):
     """
@@ -137,7 +137,7 @@ def draw_reshuffle_button(surface, font, battle_manager):
     pygame.draw.rect(surface, base_color, button_rect, border_radius=10)
 
     # ---------------- TEXTO ----------------
-    label = small_font.render("Trocar Mão", True, (255, 255, 255))
+    label = FONT_SMALL.render("Trocar Mão", True, (255, 255, 255))
     surface.blit(
         label,
         (button_rect.centerx - label.get_width() // 2,
@@ -174,7 +174,7 @@ def draw_end_turn_button(surface, font, battle_manager):
     pygame.draw.rect(surface, base_color, button_rect, border_radius=10)
 
     # ---------------- TEXTO ----------------
-    label = small_font.render("Encerrar", True, (255, 255, 255))
+    label = FONT_SMALL.render("Encerrar", True, (255, 255, 255))
     surface.blit(
         label,
         (button_rect.centerx - label.get_width() // 2,
