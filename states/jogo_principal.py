@@ -8,7 +8,10 @@ from jogo_principal.dialog import Dialogo
 from characters.npc import NPC
 from states.batalha import Batalha
 from states.base_state import BaseState
-from batalha.dic_enemy import gerar_encontro_aleatorio
+from batalha.dic_enemy import ProgressaoTorre
+
+# Cria a instância global - ADICIONE ESTA LINHA
+progressao_torre = ProgressaoTorre()
 
 # 1. Caminho base dos assets de inimigos
 ENEMY_ASSET_PATH = "assets/enemy/"
@@ -134,7 +137,7 @@ class JogoPrincipal(BaseState):
                     "callbacks": [
                          lambda: self.game.push_state(Batalha(
                             self.game, 
-                            gerar_encontro_aleatorio(nivel_desafio=1, quantidade=5)
+                            progressao_torre.proximo_desafio()  # Gera desafio progressivo
                         )),
                         lambda: print("O jogador recuou da torre.")
                     ],

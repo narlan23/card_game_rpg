@@ -123,11 +123,11 @@ class TurnManager:
         elif action_type == "heal":
             heal_amount = int(enemy.max_health * 0.15)
             enemy.heal(heal_amount)
-            self.battle_manager.animation_manager.spawn_heal_animation(enemy, heal_amount)
+            #self.battle_manager.animation_manager.spawn_heal_animation(enemy, heal_amount)
 
         elif action_type == "buff":
             enemy.add_status("fortalecido", power=2, duration=3)
-            self.battle_manager.animation_manager.spawn_buff_animation(enemy, "fortalecido")
+            #self.battle_manager.animation_manager.spawn_buff_animation(enemy, "fortalecido")
 
         # Checa se a batalha acabou após a ação
         if self.battle_manager.check_battle_end_conditions():

@@ -5,7 +5,7 @@ ENEMY_ASSET_PATH = "assets/enemy/"
 CATALOGO_MONSTROS = {
     "goblin": {
         "nome_base": "Goblin",
-        "health_base": 10,
+        "health_base": 5,
         "attack_base": 5,
         "sprite_paths": [  # Lista direta dos sprites
             f"{ENEMY_ASSET_PATH}agua_frame_6.png",
@@ -14,11 +14,11 @@ CATALOGO_MONSTROS = {
         ],
         "animation_speed_base": 150,
         "tamanho_base": (75, 150),
-        "fator_crescimento": {"health": 5, "attack": 2}
+        "fator_crescimento": {"health": 2, "attack": 1}
     },
     "orc": {
         "nome_base": "Orc",
-        "health_base": 5, 
+        "health_base": 3, 
         "attack_base": 3,
         "sprite_paths": [  # Lista direta dos sprites
             f"{ENEMY_ASSET_PATH}agua2_frame_1.png",
@@ -27,7 +27,7 @@ CATALOGO_MONSTROS = {
         ],
         "animation_speed_base": 200,
         "tamanho_base": (100, 150),
-        "fator_crescimento": {"health": 8, "attack": 3}
+        "fator_crescimento": {"health": 4, "attack": 2}
     }
 }
 
@@ -82,3 +82,34 @@ def gerar_encontro_aleatorio(nivel_desafio=1, quantidade=2):
     tipos_disponiveis = list(CATALOGO_MONSTROS.keys())
     tipos_escolhidos = random.choices(tipos_disponiveis, k=quantidade)
     return gerar_encontro_inimigos(tipos_escolhidos, nivel_desafio)
+
+
+class ProgressaoTorre:
+    def __init__(self):
+        self.nivel_atual = 0
+        self.max_inimigos = 3  # Máximo de inimigos por encontro
+    
+    def proximo_desafio(self):
+        """Gera o próximo desafio na progressão"""
+        self.nivel_atual += 1
+        
+        # Fórmula: nível 1-3 segue padrão, depois escala
+        if self.nivel_atual <= 3:
+            quantidade = self.nivel_atual  # 1, 2, 3
+            nivel_desafio = self.nivel_atual  # 1, 2, 3
+        else:
+            quantidade = self.max_inimigos  # Sempre 3 monstros
+            nivel_desafio = self.nivel_atual  # Nível continua subindo
+        
+        # Gera tipos aleatórios de monstros
+        tipos = random.choices(list(CATALOGO_MONSTROS.keys()), k=quantidade)
+        return gerar_encontro_inimigos(tipos, nivel_desafio)
+    
+    def get_texto_desafio(self):
+        """Texto descritivo do desafio atual"""
+        return f"Andar {self.nivel_atual + 1} da Torre - Preparado?"
+    
+    def resetar(self):
+        """Reseta a progressão (usar quando jogador morrer ou completar)"""
+        self.nivel_atual = 0
+

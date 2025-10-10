@@ -50,9 +50,9 @@ class Game:
     def create_player(self):
         """Cria a instância do jogador e configura seu deck inicial."""
         self.player = Player("Herói", max_energy=3, max_health=100)
-        deck = generate_deck()
+        deck = generate_deck(size=6)
         self.player.set_deck(deck)
-        self.player.draw_card(5)
+        self.player.draw_card(3)
         print("Jogador criado e deck configurado.")
 
     def load_initial_state(self):

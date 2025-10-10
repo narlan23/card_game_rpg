@@ -23,19 +23,19 @@ class CardType(Enum):
 # -----------------------------
 CARD_LIBRARY = {
     # ATAQUES
-    "ataque_fraco": {"type": CardType.ATAQUE, "value": 1, "element": "Fogo"},
-    "ataque_medio": {"type": CardType.ATAQUE, "value": 3, "element": "Água"},
-    "ataque_forte": {"type": CardType.ATAQUE, "value": 5, "element": "Terra"},
+    "ataque_fraco": {"type": CardType.ATAQUE, "value": 2, "element": "Fogo"},
+    "ataque_medio": {"type": CardType.ATAQUE, "value": 4, "element": "Água"},
+    "ataque_forte": {"type": CardType.ATAQUE, "value": 6, "element": "Terra"},
 
     # DEFESAS
-    "defesa_basica": {"type": CardType.DEFESA, "value": 2, "element": "Terra"},
-    "defesa_forte": {"type": CardType.DEFESA, "value": 4, "element": "Água"},
+    "defesa_basica": {"type": CardType.DEFESA, "value": 4, "element": "Terra"},
+    "defesa_forte": {"type": CardType.DEFESA, "value": 8, "element": "Água"},
 
 }
 
 
 class Card:
-    DEFAULT_MAX_USES = 5
+    DEFAULT_MAX_USES = 3
     DEFAULT_ENERGY_COST = 1
 
     def __init__(self, card_type: CardType, value: int, element: str,
@@ -159,7 +159,7 @@ class Card:
             print(f"{user.name} usou especial causando {self.value} de dano!")
 
 
-def generate_deck(size=10):
+def generate_deck(size=12):
     deck = []
     card_ids = list(CARD_LIBRARY.keys())
     for _ in range(size):
