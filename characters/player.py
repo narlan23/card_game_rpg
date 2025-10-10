@@ -1,34 +1,85 @@
+import pygame
 import random
 from characters.cards import Card, CardState
 from config import PLAYER_HEALTH
 
 
-class Player:
+class Player(pygame.sprite.Sprite):
     """Representa o jogador: vida, energia, deck, mão, escudo e efeitos de batalha."""
 
-    def __init__(self, name="Jogador", max_energy=3, max_health=PLAYER_HEALTH):
-        # Atributos básicos
+    def __init__(self, name="Jogador", max_energy=3, max_health=PLAYER_HEALTH, x=0, y=0):
+        # 🔥 HERANÇA PYGAME.SPRITE - CONSTRUTOR OBRIGATÓRIO
+        super().__init__()
+        
+        # 🔥 ATRIBUTOS VISUAIS OBRIGATÓRIOS DO PYGAME
+        self.image = pygame.Surface((60, 80))  # Tamanho do sprite do jogador
+        self.image.fill((0, 120, 255))  # Cor azul para representar o jogador
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)  # Posição inicial
+        
+        # 🎯 ATRIBUTOS BÁSICOS DO JOGADOR
         self.name = name
         self.max_health = max_health
         self.health = max_health
         self.max_energy = max_energy
         self.energy = max_energy
 
-        # Defesa e status
+        # 🛡️ DEFESA E STATUS
         self.shield = 0  # escudo que absorve dano
         self.status_effects = {}  # Ex: {"força": {"power": 2, "duration": 3}}
 
-        # Deck, mão e descarte
+        # 🃏 DECK, MÃO E DESCARTE
         self.deck = []
         self.hand = []
         self.discard_pile = []
 
-        # Cartas selecionadas
+        # 🎯 CARTAS SELECIONADAS
         self.selected_cards = []
 
-    # -------------------------------
-    # Vida, escudo e energia
-    # -------------------------------
+    # =========================================================================
+    # 🎮 MÉTODOS VISUAIS E DE POSIÇÃO (NOVOS - INTEGRAÇÃO PYGAME)
+    # =========================================================================
+    
+    def update(self):
+        """
+        Método chamado automaticamente pelo grupo de sprites.
+        Atualiza aspectos visuais do jogador.
+        """
+        # Efeito visual quando com pouca vida
+        if self.health < self.max_health * 0.3:
+            # Piscar para indicar perigo
+            alpha = 128 + 127 * (pygame.time.get_ticks() % 1000) // 1000
+            self.image.set_alpha(alpha)
+        else:
+            self.image.set_alpha(255)
+            
+        # Mudar cor baseado na energia
+        if self.energy <= 1:
+            self.image.fill((255, 100, 100))  # Vermelho quando pouca energia
+        else:
+            self.image.fill((0, 120, 255))   # Azul normal
+
+    def set_position(self, x, y):
+        """Define a posição do jogador na tela."""
+        self.rect.topleft = (x, y)
+
+    def move(self, dx, dy):
+        """Move o jogador por uma quantidade dx, dy."""
+        self.rect.x += dx
+        self.rect.y += dy
+
+    def get_position(self):
+        """Retorna a posição atual do jogador."""
+        return self.rect.topleft
+
+    def draw(self, surface):
+        """Desenha o jogador em uma surface (alternativa ao grupo de sprites)."""
+        surface.blit(self.image, self.rect)
+
+    # =========================================================================
+    # ❤️ VIDA, ESCUDO E ENERGIA
+    # =========================================================================
+
     def take_damage(self, amount: int):
         """Recebe dano levando em conta escudo e status."""
         # Verifica se esquiva o ataque
@@ -74,7 +125,7 @@ class Player:
     def is_full_health(self):
         return self.health == self.max_health
 
-    # Energia
+    # ⚡ ENERGIA
     def reset_energy(self):
         self.energy = self.max_energy
 
@@ -87,14 +138,15 @@ class Player:
     def lose_energy(self, amount=1):
         self.energy = max(0, self.energy - amount)
 
-    # Escudo
+    # 🛡️ ESCUDO
     def add_shield(self, amount=1):
         self.shield += amount
         print(f"{self.name} ganhou {amount} de escudo (total: {self.shield})")
 
-    # -------------------------------
-    # Status
-    # -------------------------------
+    # =========================================================================
+    # 📊 STATUS EFFECTS
+    # =========================================================================
+
     def add_status(self, status: str, **kwargs):
         """Adiciona ou atualiza efeitos de status (buffs/debuffs)."""
         self.status_effects[status] = kwargs.copy()  # Usa copy para evitar referências
@@ -129,9 +181,10 @@ class Player:
         for s in expired:
             self.remove_status(s)
 
-    # -------------------------------
-    # Deck e cartas
-    # -------------------------------
+    # =========================================================================
+    # 🃏 DECK E CARTAS
+    # =========================================================================
+
     def set_deck(self, deck):
         """Configura um novo deck embaralhado."""
         self.deck = [card.clone() for card in deck]
@@ -167,9 +220,10 @@ class Player:
         random.shuffle(self.deck)
         self.discard_pile.clear()
 
-    # -------------------------------
-    # Seleção e uso de cartas
-    # -------------------------------
+    # =========================================================================
+    # 🎯 SELEÇÃO E USO DE CARTAS
+    # =========================================================================
+
     def can_play_card(self, card: Card):
         """Verifica se o jogador pode jogar uma carta."""
         return self.energy >= card.energy_cost and card.is_active()
@@ -218,7 +272,6 @@ class Player:
         """Reseta seleção de cartas sem consumir energia."""
         for card in self.selected_cards:
             card.state = CardState.IDLE
-            #self.gain_energy(card.energy_cost)  # Devolve energia
         self.selected_cards.clear()
 
     def play_card(self, card, target=None):
@@ -264,9 +317,10 @@ class Player:
         print(f"{self.name} reembaralhou a mão ({old_hand_size} cartas). Energia restante: {self.energy}/{self.max_energy}")
         return True
 
-    # -------------------------------
-    # Controle de turno
-    # -------------------------------
+    # =========================================================================
+    # 🔄 CONTROLE DE TURNO
+    # =========================================================================
+
     def start_turn(self, draw_amount=1):
         """Inicia turno: atualiza status, reseta energia e compra cartas."""
         self.tick_status()
@@ -278,9 +332,10 @@ class Player:
         """Descarta a mão no fim do turno."""
         self.discard_hand()
 
-    # -------------------------------
-    # Debug textual
-    # -------------------------------
+    # =========================================================================
+    # 📊 DEBUG TEXTUAL
+    # =========================================================================
+
     def show_hand(self):
         return [str(card) for card in self.hand]
 
@@ -295,4 +350,5 @@ class Player:
                 f"Energy: {self.energy}/{self.max_energy} | "
                 f"Shield: {self.shield} | "
                 f"Status: {list(self.status_effects.keys())} | "
-                f"Hand: {len(self.hand)} cards")
+                f"Hand: {len(self.hand)} cards | "
+                f"Position: {self.rect.topleft}")

@@ -34,6 +34,9 @@ class Game:
         self.assets = Assets()
         self.player = None
         self.state_stack = []
+        
+        # 🔥 GRUPO DE SPRITES PARA GERENCIAR O PLAYER VISUALMENTE
+        self.all_sprites = pygame.sprite.Group()
 
         self.load_assets()
         self.create_player()
@@ -49,11 +52,17 @@ class Game:
 
     def create_player(self):
         """Cria a instância do jogador e configura seu deck inicial."""
-        self.player = Player("Herói", max_energy=3, max_health=100)
+        # 🔥 AGORA O PLAYER É UM SPRITE E PRECISA DE POSIÇÃO
+        self.player = Player("Herói", max_energy=3, max_health=100, x=100, y=300)
+        
+        # 🔥 ADICIONA O PLAYER AO GRUPO DE SPRITES
+        self.all_sprites.add(self.player)
+        
         deck = generate_deck(size=6)
         self.player.set_deck(deck)
         self.player.draw_card(3)
         print("Jogador criado e deck configurado.")
+        print(f"Player position: {self.player.rect.topleft}")  # Debug
 
     def load_initial_state(self):
         """Cria e carrega o estado inicial do jogo na pilha."""
@@ -63,9 +72,6 @@ class Game:
         """Retorna o estado que está no topo da pilha."""
         return self.state_stack[-1] if self.state_stack else None
 
-    # ========================================================================
-    # CORREÇÃO PRINCIPAL ESTÁ AQUI
-    # ========================================================================
     def push_state(self, state):
         """
         Adiciona um novo estado ao topo da pilha.
@@ -108,16 +114,22 @@ class Game:
             events = pygame.event.get()
             active_state = self.get_active_state()
             
+            # 🔥 ATUALIZA TODOS OS SPRITES (INCLUINDO O PLAYER)
+            self.all_sprites.update()
 
             if active_state:
                 active_state.handle_events(events)
                 active_state.update(dt)
                 active_state.draw(self.SCREEN)
+                
+                # 🔥 DESENHA OS SPRITES NO ESTADO ATIVO (se necessário)
+                # Isso permite que cada estado decida quando desenhar os sprites
+                if hasattr(active_state, 'draw_sprites'):
+                    active_state.draw_sprites(self.SCREEN)
             else:
                 self.running = False
 
             pygame.display.flip()
-            #self.CLOCK.tick(60)
 
         pygame.quit()
         sys.exit()

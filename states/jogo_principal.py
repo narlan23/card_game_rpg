@@ -44,15 +44,6 @@ dados_inimigos_da_torre = [
         "x_tam": 100,
         "y_tam": 150
     },
-    # Exemplo de inimigo extra (opcional)
-    # {
-    #     "name": "Slime",
-    #     "health": 4,
-    #     "attack": 1,
-    #     "image_paths": [f"{ENEMY_ASSET_PATH}slime_idle_1.png"],
-    #     "x_tam": 60,
-    #     "y_tam": 100
-    # },
 ]
 
 class JogoPrincipal(BaseState):
@@ -65,9 +56,12 @@ class JogoPrincipal(BaseState):
         
         # --- CONFIGURAÇÕES DO JOGADOR E DO MUNDO ---
         self.player = self.game.player
-        self.player_pos = [400, 300] # Posição inicial no mundo
+        # ✅ POSIÇÃO AGORA É GERENCIADA PELO SPRITE DO PLAYER
+        # Definir posição inicial do player sprite
+        self.player.set_position(400, 300)
+        
         self.TAMANHO_JOGADOR = 20
-        self.VELOCIDADE_JOGADOR = 180 # Movimento baseado em pixels por segundo
+        self.VELOCIDADE_JOGADOR = 180  # Movimento baseado em pixels por segundo
 
         # --- FONTES E INTERFACE ---
         self.font_default = self.game.assets.get_font("default")
@@ -79,7 +73,7 @@ class JogoPrincipal(BaseState):
         map_width = self.mapa.width * self.mapa.tilewidth
         map_height = self.mapa.height * self.mapa.tileheight
 
-        # NOVO: Nível de zoom inicial
+        # Nível de zoom inicial
         self.zoom_level_padrao = 1.5
         self.camera = Camera(
             self.game.screen_width, 
@@ -88,25 +82,23 @@ class JogoPrincipal(BaseState):
             map_height, 
             zoom_level=self.zoom_level_padrao
         )
-        # NOVO: Configurações de zoom
-        self.zoom_speed = 0.25 # Quanto o zoom muda por tecla
-        self.min_zoom = 0.5   # Zoom out máximo
-        self.max_zoom = 3.0   # Zoom in máximo
         
+        # Configurações de zoom
+        self.zoom_speed = 0.25  # Quanto o zoom muda por tecla
+        self.min_zoom = 0.5    # Zoom out máximo
+        self.max_zoom = 3.0    # Zoom in máximo
 
-        # NOVO: Carregar retângulos de colisão da camada "collision" do mapa
+        # Carregar retângulos de colisão da camada "collision" do mapa
         try:
-            # Garanta que o nome da camada esteja correto (ex: "collision" ou "Colisao")
             self.colisoes_mapa = self.mapa.get_collision_rects("collision") 
             print(f"Colisões carregadas: {len(self.colisoes_mapa)} objetos.")
         except AttributeError:
-            # Isso é crucial para que o jogo não quebre se TiledMap for incompleto
             print("ERRO: Sua classe TiledMap não possui o método get_collision_rects(layer_name). Colisões desativadas.")
             self.colisoes_mapa = []
 
         # --- NPCs ---
         self.npcs = self._create_npcs()
-        self.npc_interacao = None # Armazena o NPC com o qual a interação é possível
+        self.npc_interacao = None  # Armazena o NPC com o qual a interação é possível
 
         # --- CONTROLE DE TEMPO ---
         self.clock = pygame.time.Clock()
@@ -187,13 +179,14 @@ class JogoPrincipal(BaseState):
         # Usa o delta_time passado pelo loop principal
         self.delta_time = dt
 
+        # ✅ ATUALIZA O SPRITE DO PLAYER (chama o método update() do sprite)
+        self.player.update()
+
         if not self.dialogo.ativo:
             self._processar_movimento()
             self._verificar_interacao()
 
         self._update_camera()
-
-# JogoPrincipal.draw(self, surface)
 
     def draw(self, surface):
         """Renderiza todos os elementos do jogo na tela, aplicando o zoom."""
@@ -201,23 +194,21 @@ class JogoPrincipal(BaseState):
         # === ETAPA 1: Criar e Desenhar na Superfície Temporária (CANVAS) ===
         
         # 1.1 Obtém o tamanho da área de visão (viewport) no mundo.
-        # Se o zoom for 2.0, o viewport_w será metade da largura da tela real.
         viewport_w = int(self.camera.width)
         viewport_h = int(self.camera.height)
         
         # 1.2 Cria a Surface temporária (Canvas)
         canvas = pygame.Surface((viewport_w, viewport_h))
-        canvas.fill((30, 30, 50)) # Preenche o CANVAS com o fundo
+        canvas.fill((30, 30, 50))  # Preenche o CANVAS com o fundo
         
         # 1.3 Desenha TODOS os elementos do mundo na CANVAS, usando a camera.apply()
-        # Note que passamos 'canvas', não 'surface'
         self.mapa.draw(canvas, self.camera)
-        self._draw_npcs(canvas) # Este método deve usar canvas
+        self._draw_npcs(canvas)   # Este método deve usar canvas
         self._draw_player(canvas) # Este método deve usar canvas
         
         # === ETAPA 2: Escalonar e Desenhar na Tela Real ===
         
-        # 2.1 Escala a imagem da canvas (400x300, por exemplo) para o tamanho real da tela (800x600)
+        # 2.1 Escala a imagem da canvas para o tamanho real da tela
         scaled_canvas = pygame.transform.scale(
             canvas, 
             (self.game.screen_width, self.game.screen_height)
@@ -244,7 +235,7 @@ class JogoPrincipal(BaseState):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 # Empilha um menu de pausa sobre o jogo
-                self.game.push_state("MENU_PAUSA") # Você precisará criar este estado
+                self.game.push_state("MENU_PAUSA")  # Você precisará criar este estado
             
             elif event.key == pygame.K_c:
                 # Empilha a tela de características
@@ -253,22 +244,17 @@ class JogoPrincipal(BaseState):
             elif event.key == pygame.K_e and self.npc_interacao:
                 # Interage com o NPC próximo
                 self.npc_interacao.interagir(self.dialogo)
-    
-    # NOVO: Método para obter o Rect do jogador
+
     def player_rect(self):
-        """Retorna o pygame.Rect do jogador, centralizado em sua posição."""
-        return pygame.Rect(
-            self.player_pos[0] - self.TAMANHO_JOGADOR / 2,
-            self.player_pos[1] - self.TAMANHO_JOGADOR / 2,
-            self.TAMANHO_JOGADOR,
-            self.TAMANHO_JOGADOR
-        )
-    
+        """Retorna o pygame.Rect do jogador (agora usa self.player.rect)."""
+        return self.player.rect.copy()
+
     def _update_camera(self):
         """Atualiza a posição da câmera para seguir o jogador."""
-        self.camera.update(self.player_pos)
+        # ✅ Usa a posição do rect do player
+        player_center = self.player.rect.center
+        self.camera.update([player_center[0], player_center[1]])
 
-    # NOVO: Lógica de Colisão
     def _resolver_colisoes(self, player_rect, delta_x, delta_y):
         """
         Verifica colisão do player_rect com os objetos do mapa e resolve o problema,
@@ -277,18 +263,17 @@ class JogoPrincipal(BaseState):
         for rect_mapa in self.colisoes_mapa:
             if player_rect.colliderect(rect_mapa):
                 # Colisão no eixo X
-                if delta_x > 0: # Movendo para a direita
+                if delta_x > 0:  # Movendo para a direita
                     player_rect.right = rect_mapa.left
-                elif delta_x < 0: # Movendo para a esquerda
+                elif delta_x < 0:  # Movendo para a esquerda
                     player_rect.left = rect_mapa.right
                 
                 # Colisão no eixo Y
-                if delta_y > 0: # Movendo para baixo
+                if delta_y > 0:  # Movendo para baixo
                     player_rect.bottom = rect_mapa.top
-                elif delta_y < 0: # Movendo para cima
+                elif delta_y < 0:  # Movendo para cima
                     player_rect.top = rect_mapa.bottom
 
-    # MODIFICADO: Agora trata movimento e colisão separadamente
     def _processar_movimento(self):
         """Calcula e aplica o movimento do jogador, resolvendo colisões com o mapa."""
         keys = pygame.key.get_pressed()
@@ -297,45 +282,45 @@ class JogoPrincipal(BaseState):
 
         # Normaliza o vetor de movimento para evitar velocidade extra na diagonal
         if dx != 0 and dy != 0:
-            norm_factor = 0.7071 # Aprox. 1 / sqrt(2)
+            norm_factor = 0.7071  # Aprox. 1 / sqrt(2)
             dx *= norm_factor
             dy *= norm_factor
 
-        # 1. Cria o retângulo do jogador na posição atual
-        player_rect = self.player_rect()
-
+        # 1. Cria uma cópia do retângulo do jogador para teste de colisão
+        new_rect = self.player.rect.copy()
+        
         # 2. Tenta mover no eixo X e verifica colisão
         delta_x = dx * self.VELOCIDADE_JOGADOR * self.delta_time
-        player_rect.x += delta_x
-        if self.colisoes_mapa: # Só resolve se houver colisões carregadas
-            self._resolver_colisoes(player_rect, delta_x, 0)
+        new_rect.x += delta_x
+        if self.colisoes_mapa:  # Só resolve se houver colisões carregadas
+            self._resolver_colisoes(new_rect, delta_x, 0)
 
         # 3. Tenta mover no eixo Y e verifica colisão
         delta_y = dy * self.VELOCIDADE_JOGADOR * self.delta_time
-        player_rect.y += delta_y
-        if self.colisoes_mapa: # Só resolve se houver colisões carregadas
-            self._resolver_colisoes(player_rect, 0, delta_y)
+        new_rect.y += delta_y
+        if self.colisoes_mapa:  # Só resolve se houver colisões carregadas
+            self._resolver_colisoes(new_rect, 0, delta_y)
 
-        # 4. Atualiza a posição central do jogador com a posição corrigida
-        self.player_pos[0] = player_rect.centerx
-        self.player_pos[1] = player_rect.centery
+        # 4. ✅ Atualiza a posição REAL do player sprite
+        self.player.rect.topleft = new_rect.topleft
         
-        # Garante que o jogador não saia dos limites do mapa (ainda é útil)
+        # 5. Garante que o jogador não saia dos limites do mapa
         self._limitar_movimento_mapa()
 
-    # O método _limitar_movimento_mapa permanece o mesmo, mas atua na nova posição.
     def _limitar_movimento_mapa(self):
         """Impede que o jogador se mova para fora da área do mapa."""
-        half_size = self.TAMANHO_JOGADOR / 2
-        self.player_pos[0] = max(half_size, min(self.player_pos[0], self.camera.map_width - half_size))
-        self.player_pos[1] = max(half_size, min(self.player_pos[1], self.camera.map_height - half_size))
+        half_width = self.player.rect.width / 2
+        half_height = self.player.rect.height / 2
+        
+        self.player.rect.left = max(0, min(self.player.rect.left, self.camera.map_width - self.player.rect.width))
+        self.player.rect.top = max(0, min(self.player.rect.top, self.camera.map_height - self.player.rect.height))
 
     def _verificar_interacao(self):
         """Verifica se o jogador está próximo o suficiente de um NPC para interagir."""
         # Usa o método player_rect() para consistência
         player_rect = self.player_rect() 
 
-        self.npc_interacao = None # Reseta a cada frame
+        self.npc_interacao = None  # Reseta a cada frame
         for npc in self.npcs:
             if player_rect.colliderect(npc.rect):
                 self.npc_interacao = npc
@@ -346,15 +331,20 @@ class JogoPrincipal(BaseState):
     # ========================
 
     def _draw_player(self, canvas):
-        """Desenha o jogador na tela (agora na canvas)."""
-        # A posição aplicada pela câmera é em relação ao viewport, que é o tamanho da canvas.
-        player_screen_pos = self.camera.apply(self.player_pos)
-        pygame.draw.circle(canvas, (255, 255, 255), player_screen_pos, self.TAMANHO_JOGADOR / 2)
+        """Desenha o jogador na tela (agora o player se desenha automaticamente)."""
+        # ✅ O player agora é um sprite e se desenha sozinho
+        # Mas precisamos aplicar a transformação da câmera
+        screen_rect = self.camera.apply_rect(self.player.rect)
+        canvas.blit(self.player.image, screen_rect)
+        
+        # Opcional: desenhar um círculo de debug para visualizar a área de colisão
+        center_pos = self.camera.apply(self.player.rect.center)
+        pygame.draw.circle(canvas, (255, 255, 255), center_pos, self.TAMANHO_JOGADOR / 2, 1)
 
     def _draw_npcs(self, canvas):
         """Desenha todos os NPCs na tela (agora na canvas)."""
         for npc in self.npcs:
-            npc_screen_rect = self.camera.apply(npc.rect)
+            npc_screen_rect = self.camera.apply_rect(npc.rect)
             pygame.draw.rect(canvas, (0, 255, 0), npc_screen_rect, 2)
 
     def _draw_hud(self, surface):
@@ -365,10 +355,24 @@ class JogoPrincipal(BaseState):
             rect = text.get_rect(center=(self.game.screen_width / 2, self.game.screen_height - 30))
             surface.blit(text, rect)
 
-        # Posição do jogador (para debug)
-        # Também adicionamos o zoom atual para debug
+        # Posição do jogador (para debug) - AGORA USA player.rect
         pos_text = self.font_hud.render(
-            f"X: {int(self.player_pos[0])} | Y: {int(self.player_pos[1])} | Zoom: {self.camera.zoom_level:.2f}", 
+            f"X: {int(self.player.rect.x)} | Y: {int(self.player.rect.y)} | Zoom: {self.camera.zoom_level:.2f}", 
             True, (255, 255, 255)
         )
         surface.blit(pos_text, (10, 10))
+        
+        # ✅ Adicionar informações do player no HUD
+        health_text = self.font_hud.render(
+            f"HP: {self.player.health}/{self.player.max_health} | Energia: {self.player.energy}/{self.player.max_energy}", 
+            True, (255, 255, 255)
+        )
+        surface.blit(health_text, (10, 30))
+        
+        # ✅ Adicionar informações de escudo e status se existirem
+        if self.player.shield > 0 or self.player.status_effects:
+            status_text = self.font_hud.render(
+                f"Escudo: {self.player.shield} | Status: {list(self.player.status_effects.keys())}", 
+                True, (200, 200, 255)
+            )
+            surface.blit(status_text, (10, 50))
