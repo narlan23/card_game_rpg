@@ -58,9 +58,9 @@ class JogoPrincipal(BaseState):
         self.player = self.game.player
         # ✅ POSIÇÃO AGORA É GERENCIADA PELO SPRITE DO PLAYER
         # Definir posição inicial do player sprite
-        self.player.set_position(400, 300)
+        self.player.set_position(700, 500)
         
-        self.TAMANHO_JOGADOR = 20
+        self.TAMANHO_JOGADOR = 40
         self.VELOCIDADE_JOGADOR = 180  # Movimento baseado em pixels por segundo
 
         # --- FONTES E INTERFACE ---

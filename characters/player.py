@@ -5,17 +5,10 @@ from config import PLAYER_HEALTH
 
 
 class Player(pygame.sprite.Sprite):
-    """Representa o jogador: vida, energia, deck, mão, escudo e efeitos de batalha."""
+    """Representa o jogador com sprites reais e animações."""
 
     def __init__(self, name="Jogador", max_energy=3, max_health=PLAYER_HEALTH, x=0, y=0):
-        # 🔥 HERANÇA PYGAME.SPRITE - CONSTRUTOR OBRIGATÓRIO
         super().__init__()
-        
-        # 🔥 ATRIBUTOS VISUAIS OBRIGATÓRIOS DO PYGAME
-        self.image = pygame.Surface((60, 80))  # Tamanho do sprite do jogador
-        self.image.fill((0, 120, 255))  # Cor azul para representar o jogador
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)  # Posição inicial
         
         # 🎯 ATRIBUTOS BÁSICOS DO JOGADOR
         self.name = name
@@ -25,56 +18,116 @@ class Player(pygame.sprite.Sprite):
         self.energy = max_energy
 
         # 🛡️ DEFESA E STATUS
-        self.shield = 0  # escudo que absorve dano
-        self.status_effects = {}  # Ex: {"força": {"power": 2, "duration": 3}}
+        self.shield = 0
+        self.status_effects = {}
 
         # 🃏 DECK, MÃO E DESCARTE
         self.deck = []
         self.hand = []
         self.discard_pile = []
-
-        # 🎯 CARTAS SELECIONADAS
         self.selected_cards = []
 
-    # =========================================================================
-    # 🎮 MÉTODOS VISUAIS E DE POSIÇÃO (NOVOS - INTEGRAÇÃO PYGAME)
-    # =========================================================================
-    
-    def update(self):
-        """
-        Método chamado automaticamente pelo grupo de sprites.
-        Atualiza aspectos visuais do jogador.
-        """
-        # Efeito visual quando com pouca vida
-        if self.health < self.max_health * 0.3:
-            # Piscar para indicar perigo
-            alpha = 128 + 127 * (pygame.time.get_ticks() % 1000) // 1000
-            self.image.set_alpha(alpha)
-        else:
-            self.image.set_alpha(255)
-            
-        # Mudar cor baseado na energia
-        if self.energy <= 1:
-            self.image.fill((255, 100, 100))  # Vermelho quando pouca energia
-        else:
-            self.image.fill((0, 120, 255))   # Azul normal
-
-    def set_position(self, x, y):
-        """Define a posição do jogador na tela."""
+        # 🔥 SISTEMA DE SPRITES E ANIMAÇÕES
+        self._load_sprites()
+        self.current_animation = "idle"
+        self.animation_frame = 0
+        self.animation_speed = 0.2  # Velocidade da animação
+        self.last_update = pygame.time.get_ticks()
+        
+        # 🎯 ATRIBUTOS VISUAIS OBRIGATÓRIOS DO PYGAME
+        self.image = self.animations["idle"][0]  # Imagem inicial
+        self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
+        
+        # 🎮 ESTADO DE MOVIMENTO
+        self.is_moving = False
+        self.facing_right = True
 
-    def move(self, dx, dy):
-        """Move o jogador por uma quantidade dx, dy."""
-        self.rect.x += dx
-        self.rect.y += dy
+    def _load_sprites(self):
+        """Carrega todos os sprites e animações do jogador."""
+        self.animations = {
+            "idle": self._load_animation_frames("assets/", "player_idle_", 1),
+            "walk": self._load_animation_frames("assets/player/walk/", "player_walk_", 6),
+            "attack": self._load_animation_frames("assets/player/attack/", "player_attack_", 4),
+        }
+        
+        # Fallback: criar sprites coloridos se os arquivos não existirem
+        if not self.animations["idle"]:
+            print("AVISO: Sprites não encontrados. Criando sprites coloridos de fallback.")
+            self._create_fallback_sprites()
 
-    def get_position(self):
-        """Retorna a posição atual do jogador."""
-        return self.rect.topleft
+    def _load_animation_frames(self, folder, prefix, frame_count):
+        """Carrega os frames de animação de uma pasta."""
+        frames = []
+        try:
+            for i in range(1, frame_count + 1):
+                filename = f"{folder}{prefix}{i}.png"
+                image = pygame.image.load(filename).convert_alpha()
+                # Redimensiona se necessário (opcional)
+                image = pygame.transform.scale(image, (50, 80))
+                frames.append(image)
+            print(f"✅ Carregados {len(frames)} frames de {folder}")
+        except (pygame.error, FileNotFoundError) as e:
+            print(f"❌ Erro ao carregar sprites de {folder}: {e}")
+            return []
+        return frames
 
-    def draw(self, surface):
-        """Desenha o jogador em uma surface (alternativa ao grupo de sprites)."""
-        surface.blit(self.image, self.rect)
+    def _create_fallback_sprites(self):
+        """Cria sprites coloridos como fallback."""
+        self.animations = {
+            "idle": [self._create_colored_surface((50, 80), (0, 120, 255))],
+            "walk": [
+                self._create_colored_surface((50, 80), (0, 100, 230)),
+                self._create_colored_surface((50, 80), (0, 120, 255)),
+                self._create_colored_surface((50, 80), (0, 140, 230)),  # ✅ CORRIGIDO: 280 → 230
+            ],
+            "attack": [self._create_colored_surface((50, 80), (255, 100, 100))],
+        }
+
+    def _create_colored_surface(self, size, color):
+        """Cria uma surface colorida com bordas."""
+        surface = pygame.Surface(size, pygame.SRCALPHA)
+        pygame.draw.rect(surface, color, (0, 0, size[0], size[1]))
+        pygame.draw.rect(surface, (255, 255, 255), (0, 0, size[0], size[1]), 2)
+        return surface
+
+    def update(self):
+        """Atualiza a animação do sprite."""
+        now = pygame.time.get_ticks()
+        
+        # Verifica se é hora de atualizar o frame de animação
+        if now - self.last_update > self.animation_speed * 1000:
+            self.last_update = now
+            self.animation_frame = (self.animation_frame + 1) % len(self.animations[self.current_animation])
+            
+            # Atualiza a imagem atual
+            self.image = self.animations[self.current_animation][self.animation_frame]
+            
+            # Espelha a imagem se estiver virado para esquerda
+            if not self.facing_right:
+                self.image = pygame.transform.flip(self.image, True, False)
+
+    def set_animation(self, animation_name):
+        """Muda para uma animação específica."""
+        if animation_name in self.animations and animation_name != self.current_animation:
+            self.current_animation = animation_name
+            self.animation_frame = 0
+
+    def set_moving(self, is_moving, direction_x=0):
+        """Define se o jogador está se movendo e a direção."""
+        self.is_moving = is_moving
+        
+        # Atualiza direção
+        if direction_x > 0:
+            self.facing_right = True
+        elif direction_x < 0:
+            self.facing_right = False
+            
+        # Muda animação baseado no movimento
+        if is_moving:
+            self.set_animation("walk")
+        else:
+            self.set_animation("idle")
 
     # =========================================================================
     # ❤️ VIDA, ESCUDO E ENERGIA
@@ -82,12 +135,11 @@ class Player(pygame.sprite.Sprite):
 
     def take_damage(self, amount: int):
         """Recebe dano levando em conta escudo e status."""
-        # Verifica se esquiva o ataque
         if self.has_status("esquiva"):
-            if random.random() < 0.5:  # 50% chance de esquivar
+            if random.random() < 0.5:
                 print(f"{self.name} esquivou do ataque!")
                 self.remove_status("esquiva")
-                return False  # Não morreu
+                return False
 
         if self.shield > 0:
             absorbed = min(amount, self.shield)
@@ -95,7 +147,6 @@ class Player(pygame.sprite.Sprite):
             amount -= absorbed
             print(f"{self.name} bloqueou {absorbed} de dano com escudo!")
 
-        # Aplica vulnerabilidade
         if self.has_status("vulnerabilidade") or self.has_status("vulneravel"):
             multiplier = self.status_effects.get(
                 "vulnerabilidade",
@@ -108,7 +159,7 @@ class Player(pygame.sprite.Sprite):
             self.health = max(0, self.health - amount)
             print(f"{self.name} recebeu {amount} de dano! Vida atual: {self.health}")
 
-        return self.health <= 0  # retorna True se morreu
+        return self.health <= 0
 
     def heal(self, amount: int):
         """Recupera vida até o máximo permitido."""
@@ -148,8 +199,7 @@ class Player(pygame.sprite.Sprite):
     # =========================================================================
 
     def add_status(self, status: str, **kwargs):
-        """Adiciona ou atualiza efeitos de status (buffs/debuffs)."""
-        self.status_effects[status] = kwargs.copy()  # Usa copy para evitar referências
+        self.status_effects[status] = kwargs.copy()
         print(f"{self.name} ganhou status: {status} {kwargs}")
 
     def has_status(self, status: str):
@@ -161,10 +211,8 @@ class Player(pygame.sprite.Sprite):
             print(f"{self.name} perdeu o status {status}")
 
     def tick_status(self):
-        """Reduz duração dos status e aplica efeitos recorrentes por turno."""
         expired = []
         for status, data in list(self.status_effects.items()):
-            # Exemplo de status recorrentes
             if status == "veneno":
                 dmg = data.get("power", 1)
                 self.take_damage(dmg)
@@ -182,18 +230,33 @@ class Player(pygame.sprite.Sprite):
             self.remove_status(s)
 
     # =========================================================================
-    # 🃏 DECK E CARTAS
+    # 🎮 MÉTODOS VISUAIS E DE POSIÇÃO
+    # =========================================================================
+    
+    def set_position(self, x, y):
+        self.rect.topleft = (x, y)
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+
+    def get_position(self):
+        return self.rect.topleft
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+    # =========================================================================
+    # 🃏 DECK E CARTAS (métodos principais mantidos)
     # =========================================================================
 
     def set_deck(self, deck):
-        """Configura um novo deck embaralhado."""
         self.deck = [card.clone() for card in deck]
         random.shuffle(self.deck)
         self.hand.clear()
         self.discard_pile.clear()
 
     def draw_card(self, amount=1):
-        """Compra cartas do deck, reembaralhando o descarte se necessário."""
         for _ in range(amount):
             if not self.deck:
                 self.reshuffle_discard_into_deck()
@@ -201,35 +264,26 @@ class Player(pygame.sprite.Sprite):
                 self.hand.append(self.deck.pop())
 
     def discard_card(self, card):
-        """Descarta carta da mão para a pilha de descarte."""
         if card in self.hand:
             self.hand.remove(card)
         card.state = CardState.EXHAUSTED
         self.discard_pile.append(card)
 
     def discard_hand(self):
-        """Descarta todas as cartas da mão."""
         while self.hand:
             self.discard_card(self.hand[0])
 
     def reshuffle_discard_into_deck(self):
-        """Reembaralha o descarte de volta para o deck."""
         if not self.discard_pile:
             return
         self.deck = [card.clone() for card in self.discard_pile]
         random.shuffle(self.deck)
         self.discard_pile.clear()
 
-    # =========================================================================
-    # 🎯 SELEÇÃO E USO DE CARTAS
-    # =========================================================================
-
     def can_play_card(self, card: Card):
-        """Verifica se o jogador pode jogar uma carta."""
         return self.energy >= card.energy_cost and card.is_active()
 
     def select_card(self, card):
-        """Seleciona uma carta se possível."""
         if card not in self.hand or not self.can_play_card(card):
             return False
         if card.state == CardState.SELECTED:
@@ -240,7 +294,6 @@ class Player(pygame.sprite.Sprite):
         return True
 
     def deselect_card(self, card):
-        """Deseleciona carta e devolve energia."""
         if card in self.selected_cards:
             card.state = CardState.IDLE
             self.selected_cards.remove(card)
@@ -259,7 +312,6 @@ class Player(pygame.sprite.Sprite):
         return False
 
     def use_selected_cards(self, target=None):
-        """Consome cartas selecionadas e descarta elas."""
         for card in list(self.selected_cards):
             card.use(self, target)
             self.discard_card(card)
@@ -269,13 +321,11 @@ class Player(pygame.sprite.Sprite):
         return list(self.selected_cards)
 
     def reset_selection(self):
-        """Reseta seleção de cartas sem consumir energia."""
         for card in self.selected_cards:
             card.state = CardState.IDLE
         self.selected_cards.clear()
 
     def play_card(self, card, target=None):
-        """Atalho para jogar uma carta imediatamente."""
         if not self.select_card(card):
             return False
         card.use(self, target)
@@ -285,12 +335,6 @@ class Player(pygame.sprite.Sprite):
         return True
     
     def reshuffle_hand(self, energy_cost=3):
-        """
-        Descarte todas as cartas atuais da mão e compre novas do deck.
-        Possui um custo de energia (padrão = 1).
-        Se o deck acabar, o descarte é reembaralhado automaticamente.
-        """
-        # ⚡ Verifica energia suficiente
         if self.energy < energy_cost:
             print(f"[AVISO] {self.name} não tem energia suficiente para reembaralhar (precisa de {energy_cost}).")
             return False
@@ -300,18 +344,14 @@ class Player(pygame.sprite.Sprite):
             print(f"{self.name} não tem cartas na mão para reembaralhar.")
             return False
 
-        # ⚡ Consome energia
         self.lose_energy(energy_cost)
         print(f"{self.name} gastou {energy_cost} de energia para reembaralhar a mão.")
 
-        # 1️⃣ Descarta a mão atual
         self.discard_hand()
 
-        # 2️⃣ Reembaralha descarte no deck, se necessário
         if not self.deck:
             self.reshuffle_discard_into_deck()
 
-        # 3️⃣ Compra o mesmo número de cartas
         self.draw_card(old_hand_size)
 
         print(f"{self.name} reembaralhou a mão ({old_hand_size} cartas). Energia restante: {self.energy}/{self.max_energy}")
@@ -322,14 +362,11 @@ class Player(pygame.sprite.Sprite):
     # =========================================================================
 
     def start_turn(self, draw_amount=1):
-        """Inicia turno: atualiza status, reseta energia e compra cartas."""
         self.tick_status()
         self.reset_selection()
         self.reset_energy()
-        #self.draw_card(draw_amount)
 
     def end_turn(self):
-        """Descarta a mão no fim do turno."""
         self.discard_hand()
 
     # =========================================================================
