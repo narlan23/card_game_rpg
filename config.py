@@ -14,13 +14,6 @@ FONT_SMALL_SIZE = 12
 FONT       = pygame.font.Font(font_path, FONT_SIZE)
 FONT_SMALL = pygame.font.Font(font_path, FONT_SMALL_SIZE)
 
-# Cores por estado
-CARD_COLORS = {
-    "idle": (180, 180, 180),
-    "selected": (100, 200, 100),
-    "exhausted": (150, 50, 50)
-}
-
 TEXT_COLOR = (0, 0, 0)
 
 ELEMENTS = ['Fogo', 'Terra', 'Água', 'Ar']
@@ -46,30 +39,6 @@ ELEMENT_COLORS = {
     'Terra': (165, 42, 42),
     'Água': (100, 100, 255),
     'Ar':   (200, 200, 255)
-}
-
-# ---------------------------
-# Cartas
-# ---------------------------
-# Tipos de carta
-CARD_TYPES = {
-    'ATTACK':  'Ataque',
-    'DEFENSE': 'Defesa',
-    'DODGE':   'Esquiva'
-}
-
-# Composição padrão do baralho
-DECK_COMPOSITION = {
-    CARD_TYPES['ATTACK']: 5,
-    CARD_TYPES['DEFENSE']: 2,
-    CARD_TYPES['DODGE']:  0
-}
-
-# Faixa de valores possíveis por tipo de carta
-CARD_VALUE_RANGES = {
-    CARD_TYPES['ATTACK']:  (10, 15),
-    CARD_TYPES['DEFENSE']: (1, 2),
-    CARD_TYPES['DODGE']:   (0, 1)
 }
 
 # Tamanho das cartas

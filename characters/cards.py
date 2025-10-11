@@ -30,6 +30,37 @@ CARD_LIBRARY = {
     # DEFESAS
     "defesa_basica": {"type": CardType.DEFESA, "value": 4, "element": "Terra"},
     "defesa_forte": {"type": CardType.DEFESA, "value": 8, "element": "Água"},
+       # --- NOVAS CARTAS DE STATUS ---
+
+    # BUFFS (Aplicados no usuário)
+    "forca_basica": {
+        "type": CardType.BUFF,
+        "value": 3,  # Valor de 'power' (+3 de dano)
+        "element": "Fogo",
+        "status_effect": "força",
+        "status_kwargs": {"duration": 30, "power": 3},
+        "energy_cost": 1
+    },
+    
+    # DEBUFFS (Aplicados no alvo)
+    "aplicar_fraqueza": {
+        "type": CardType.DEBUFF,
+        "value": 5,  # Não é usado diretamente, mas pode indicar a duração
+        "element": "Água",
+        "status_effect": "fraqueza",
+        "status_kwargs": {"duration": 20, "multiplier": 0.5}, # Multiplica o dano por 0.5
+        "energy_cost": 1
+    },
+
+    "aplicar_vulnerabilidade": {
+        "type": CardType.DEBUFF,
+        "value": 5,
+        "element": "Terra",
+        "status_effect": "vulnerabilidade",
+        "status_kwargs": {"duration": 30, "multiplier": 1.75}, # Multiplica o dano recebido por 1.75
+        "energy_cost": 2
+    },
+
 
 }
 

@@ -1,5 +1,5 @@
 import pygame
-from config import CARD_COLORS, TEXT_COLOR, ELEMENT_COLORS, GOLD, BLACK, WHITE, get_element_icons
+from config import ELEMENT_COLORS, BLACK, WHITE, get_element_icons
 
 class HandRenderer:
     """Renderiza a mão de um jogador com hover e escala animada."""

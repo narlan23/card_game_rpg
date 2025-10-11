@@ -109,11 +109,11 @@ class InputManager:
         self._log_card_details(card_index, card)
         player.select_card_by_index(card_index)
 
-        if card.card_type == CardType.ATAQUE.value:
+        if card.card_type == CardType.ATAQUE:
             self._debug_print("Carta de ATAQUE selecionada. Aguardando clique em inimigo.")
-        elif card.card_type == CardType.DEFESA.value:
+        elif card.card_type == CardType.DEFESA:
             self._debug_print("Carta de DEFESA selecionada. Aguardando clique no jogador.")
-        elif card.card_type in (CardType.BUFF.value, CardType.DEBUFF.value):
+        elif card.card_type in (CardType.BUFF, CardType.DEBUFF):
             self._debug_print("Carta de BUFF/DEBUFF selecionada. Aguardando clique no alvo.")
         else:
             self._debug_print(f"Tipo de carta desconhecido: {card.card_type}")
@@ -208,7 +208,7 @@ class InputManager:
         if target == self.battle_manager.game.player:
             return
         base_damage = card.value
-        final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, card)
+        final_damage = self.battle_manager.status_manager.calculate_player_damage(base_damage, target, card) 
         self._debug_print(f"Dano final calculado: {final_damage}")
         self.battle_manager.apply_damage_to_enemy(target, final_damage)
         self.battle_manager.animation_manager.spawn_damage_animation(target, final_damage)

@@ -19,12 +19,15 @@ class StatusManager:
     # ------------------------------------------------------------
     # Cálculo de dano
     # ------------------------------------------------------------
-    def calculate_player_damage(self, base_damage, card=None):
-        """Calcula o dano causado pelo jogador (considerando buffs/debuffs)."""
+    # ALTERAÇÃO: A assinatura deve ser corrigida para aceitar 'target'
+    # ASSUMIMOS QUE A FUNÇÃO QUE CHAMA ESTA JÁ FOI CORRIGIDA (input_manager)
+    def calculate_player_damage(self, base_damage, target, card=None):
+        """Calcula o dano causado pelo jogador (considerando buffs/debuffs do jogador e debuffs de Vulnerabilidade do alvo)."""
         damage = base_damage
         player = self.battle_manager.game.player
         print(f"[DEBUG] Calculando dano do PLAYER. Base={base_damage}")
 
+        # 1. Checa BUFFs/DEBUFFs do JOGADOR (Força e Fraqueza)
         if player.has_status("força"):
             power = player.status_effects["força"].get("power", 0)
             damage += power
@@ -35,14 +38,24 @@ class StatusManager:
             damage = int(damage * multiplier)
             print(f"[DEBUG] Debuff FRAQUEZA aplicado. x{multiplier} → {damage}")
 
+        # 2. Checa DEBUFFs no ALVO (Vulnerabilidade)
+        if target and (target.has_status("vulnerabilidade") or target.has_status("vulneravel")):
+            data = target.status_effects.get("vulnerabilidade", target.status_effects.get("vulneravel", {}))
+            multiplier = data.get("multiplier", 1.5)
+            
+            # Aplica o multiplicador de vulnerabilidade ao dano final
+            damage = int(damage * multiplier)
+            print(f"[DEBUG] Alvo {getattr(target, 'name', '?')} vulnerável. x{multiplier} → {damage}")
+
         return max(0, damage)
 
     def calculate_enemy_damage(self, base_damage, enemy):
-        """Calcula o dano que o inimigo causa ao jogador."""
+        """Calcula o dano que o inimigo causa ao jogador. (O 'player' é o alvo aqui)."""
         damage = base_damage
         player = self.battle_manager.game.player
         print(f"[DEBUG] Calculando dano do INIMIGO {getattr(enemy, 'name', '?')}. Base={base_damage}")
 
+        # Verifica a vulnerabilidade do JOGADOR (o alvo)
         if player.has_status("vulnerabilidade") or player.has_status("vulneravel"):
             data = player.status_effects.get("vulnerabilidade", player.status_effects.get("vulneravel", {}))
             multiplier = data.get("multiplier", 1.5)
@@ -52,7 +65,7 @@ class StatusManager:
         return max(0, damage)
 
     # ------------------------------------------------------------
-    # Aplicação contínua de efeitos
+    # Aplicação contínua de efeitos (Nenhuma alteração necessária)
     # ------------------------------------------------------------
     def apply_status_effects(self, targets=None):
         """
@@ -90,7 +103,7 @@ class StatusManager:
             target.add_status(status_name, **kwargs)
 
     # ------------------------------------------------------------
-    # Implementação dos efeitos
+    # Implementação dos efeitos (Nenhuma alteração necessária)
     # ------------------------------------------------------------
     def _apply_poison(self, target, data):
         """Veneno → dano periódico."""
